@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [ main ]
+    tags:
+      - '*'
   pull_request:
     branches: [ main ]
 
@@ -60,4 +62,16 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: maptools-${{ matrix.artifact-suffix }}
-        path: ${{github.workspace}}/build/maptools.zip
+        path: ${{github.workspace}}/build/maptools-${{ matrix.artifact-suffix }}.zip
+
+    - name: Upload Release Assets
+      if: startsWith(github.ref, 'refs/tags/') && (github.repository == 'Warzone2100/maptools')
+      shell: bash
+      run: |
+        SOURCE_TAG="${WZ_GITHUB_REF#refs/tags/}"
+        echo "Uploading: ${WZ_FULL_OUTPUT_ZIP_PATH}"
+        gh release upload "${SOURCE_TAG}" "${WZ_FULL_OUTPUT_ZIP_PATH}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        WZ_FULL_OUTPUT_ZIP_PATH: '${{github.workspace}}/build/maptools-${{ matrix.artifact-suffix }}.zip'
+        WZ_GITHUB_REF: ${{ github.ref }}
