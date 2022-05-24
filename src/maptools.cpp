@@ -22,7 +22,7 @@
 # pragma GCC diagnostic push
 # pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
 #endif
-#include "CLI11.hpp"
+#include <CLI11/CLI11.hpp>
 #if defined(__GNUC__)
 # pragma GCC diagnostic pop
 #endif

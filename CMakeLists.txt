@@ -58,13 +58,14 @@ endif ()
 
 # maptools
 add_executable(maptools
-				maptools.cpp pngsave.cpp pngsave.h)
+				src/maptools.cpp src/pngsave.cpp src/pngsave.h)
 set_target_properties(maptools
 	PROPERTIES
 		CXX_STANDARD 11
 		CXX_STANDARD_REQUIRED YES
 		CXX_EXTENSIONS NO
 )
+target_include_directories(maptools PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty")
 target_link_libraries(maptools PRIVATE wzmaplib PNG::PNG)
 target_link_libraries(maptools PRIVATE nlohmann_json)
 if (TARGET ZipIOProvider)
