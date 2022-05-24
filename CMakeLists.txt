@@ -23,6 +23,8 @@ endif()
 
 include(GNUInstallDirs)
 
+set(BUILD_SHARED_LIBS OFF)
+
 # Support two methods of maptools compilation:
 # 1.) Embedded as a submodule in the WZ main project + buildsystem
 # 2.) Compiled stand-alone
