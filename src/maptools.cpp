@@ -38,6 +38,7 @@
 #include <string>
 #include <cstdlib>
 #include "pngsave.h"
+#include "maptools_version.h"
 
 class MapToolDebugLogger : public WzMap::LoggingProtocol
 {
@@ -828,6 +829,14 @@ int main(int argc, char **argv)
 {
 	int retVal = 0;
 	CLI::App app{"WZ2100 Map Tools"};
+
+#if defined(MAPTOOLS_CLI_VERSION_MAJOR) && defined(MAPTOOLS_CLI_VERSION_MINOR) && defined(MAPTOOLS_CLI_VERSION_REV)
+	app.set_version_flag("--version", []() -> std::string {
+		return generateMapToolsVersionInfo();
+	});
+#else
+	#error Missing maptools version defines
+#endif
 
 	std::stringstream footerInfo;
 	footerInfo << "License: GPL-2.0-or-later" << std::endl;
