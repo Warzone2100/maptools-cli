@@ -89,11 +89,11 @@ endif()
 # To change the install destination at configure-time, please change the value of CMAKE_INSTALL_BINDIR
 set(WZ_APP_INSTALL_DEST "${CMAKE_INSTALL_BINDIR}")
 
-#######################
+############################
 # Install
 install(TARGETS maptools DESTINATION "${WZ_APP_INSTALL_DEST}")
 
-#####################
+############################
 # Installing Required Runtime Dependencies
 
 if(CMAKE_SYSTEM_NAME MATCHES "Windows")
@@ -228,3 +228,35 @@ if(CMAKE_SYSTEM_NAME MATCHES "Windows")
 		message( WARNING "Unable to get OUTPUT_NAME from maptools target" )
 	endif()
 endif()
+
+############################
+# Packaging
+
+set(CPACK_PACKAGE_NAME			"maptools CLI")
+set(CPACK_PACKAGE_VENDOR		"Warzone 2100 Project")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_PACKAGE_CHECKSUM		SHA256)
+set(CPACK_PACKAGE_HOMEPAGE_URL  "https://wz2100.net")
+
+if(NOT DEFINED CPACK_PACKAGE_FILE_NAME)
+	# Default of "maptools"
+	set(CPACK_PACKAGE_FILE_NAME "maptools")
+endif()
+
+if(NOT DEFINED CPACK_SOURCE_PACKAGE_FILE_NAME)
+	# Default of "maptools"
+	set(CPACK_SOURCE_PACKAGE_FILE_NAME "maptools")
+endif()
+
+set(CPACK_GENERATOR "ZIP")
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY FALSE)
+
+# Ignore version control
+list (APPEND CPACK_SOURCE_IGNORE_FILES "/\\\\.git")
+# Ignore various CI / Github-config related files
+list (APPEND CPACK_SOURCE_IGNORE_FILES "/\\\\.github/")
+# Ignore development / runtime created files
+list (APPEND CPACK_SOURCE_IGNORE_FILES "~$")
+list (APPEND CPACK_SOURCE_IGNORE_FILES "\\\\.DS_Store$")
+
+include(CPack)
