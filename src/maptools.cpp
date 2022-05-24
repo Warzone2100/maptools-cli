@@ -34,6 +34,7 @@
 #endif
 #include <nlohmann/json.hpp>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <cstdlib>
 #include "pngsave.h"
@@ -827,6 +828,12 @@ int main(int argc, char **argv)
 {
 	int retVal = 0;
 	CLI::App app{"WZ2100 Map Tools"};
+
+	std::stringstream footerInfo;
+	footerInfo << "License: GPL-2.0-or-later" << std::endl;
+	footerInfo << "Source: https://github.com/Warzone2100/maptools-cli" << std::endl;
+	app.footer(footerInfo.str());
+
 	bool verbose = false;
 	app.add_flag("-v,--verbose", verbose, "Verbose output");
 
