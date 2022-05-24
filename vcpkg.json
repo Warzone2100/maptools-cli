@@ -1,0 +1,15 @@
+{
+	"name": "maptools",
+	"version-string": "main-branch",
+	"dependencies": [
+		"zlib",
+		"libpng",
+		{
+			"name": "libzip",
+			"default-features": false,
+			"features": [
+				"bzip2"
+			]
+		}
+	]
+}
