@@ -8,6 +8,13 @@ else()
 endif()
 
 cmake_minimum_required(VERSION ${_cmake_min_ver_supported}...3.14)
+
+set(_OLD_CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}")
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(VcpkgInit) # Must come before project() command
+set(CMAKE_MODULE_PATH "${_OLD_CMAKE_MODULE_PATH}")
+unset(_OLD_CMAKE_MODULE_PATH)
+
 project (maptools CXX)
 
 if(${CMAKE_VERSION} VERSION_LESS 3.12)
