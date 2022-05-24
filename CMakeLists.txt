@@ -36,7 +36,7 @@ if(NOT TARGET wzmaplib)
 	FetchContent_Declare(
 		warzone2100_repo
 		GIT_REPOSITORY https://github.com/Warzone2100/warzone2100.git
-		GIT_TAG        07f03ebe542738a831e328ab282dddb188827e18
+		GIT_TAG        0c0e6c466861fb22eaf43bf92a8914d6ea146ced
 		GIT_PROGRESS   TRUE
 		USES_TERMINAL_DOWNLOAD	TRUE
 	)
@@ -64,7 +64,7 @@ endif ()
 # maptools
 
 add_executable(maptools
-				src/maptools.cpp src/pngsave.cpp src/pngsave.h)
+				src/maptools.cpp src/pngsave.cpp src/pngsave.h src/maptools_version.cpp src/maptools_version.h)
 set_target_properties(maptools
 	PROPERTIES
 		CXX_STANDARD 11
@@ -84,6 +84,18 @@ endif()
 if(MSVC)
 	target_compile_definitions(maptools PRIVATE "_CRT_SECURE_NO_WARNINGS")
 endif()
+
+file(READ "VERSION.in" ver)
+STRING(REGEX MATCH "^([0-9]+).([0-9]+).([0-9]+)" MAPTOOLS_CLI_VERSION_STRING "${ver}")
+if(NOT MAPTOOLS_CLI_VERSION_STRING)
+	message(FATAL_ERROR "VERSION.in missing three-component version?")
+endif()
+set(MAPTOOLS_CLI_VERSION_MAJOR "${CMAKE_MATCH_1}")
+set(MAPTOOLS_CLI_VERSION_MINOR "${CMAKE_MATCH_2}")
+set(MAPTOOLS_CLI_VERSION_REV "${CMAKE_MATCH_3}")
+target_compile_definitions(maptools PRIVATE "MAPTOOLS_CLI_VERSION_MAJOR=${MAPTOOLS_CLI_VERSION_MAJOR}")
+target_compile_definitions(maptools PRIVATE "MAPTOOLS_CLI_VERSION_MINOR=${MAPTOOLS_CLI_VERSION_MINOR}")
+target_compile_definitions(maptools PRIVATE "MAPTOOLS_CLI_VERSION_REV=${MAPTOOLS_CLI_VERSION_REV}")
 
 ############################
 # App install location
