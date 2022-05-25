@@ -165,9 +165,7 @@ static bool savePngInternal(const char *fileName, uint8_t *pixels, unsigned w, u
 		for (currentRow = 0; currentRow < h; ++currentRow)
 		{
 			// png scanlines are ordered from top-to-bottom
-			// so we fill the scanline from the top to the bottom here
-			// otherwise we'd have a vertically mirrored image.
-			scanlines[currentRow] = pixels + (row_stride * (h - currentRow - 1));
+			scanlines[currentRow] = pixels + (row_stride * currentRow);
 		}
 
 		png_set_rows(png_ptr, info_ptr, (png_bytepp)scanlines);
