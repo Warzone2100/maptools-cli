@@ -16,12 +16,16 @@ set(CMAKE_MODULE_PATH "${_OLD_CMAKE_MODULE_PATH}")
 unset(_OLD_CMAKE_MODULE_PATH)
 
 project (maptools CXX)
+enable_language(C)
 
 if(${CMAKE_VERSION} VERSION_LESS 3.12)
 	cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
 endif()
 
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+
 include(GNUInstallDirs)
+include(HardenTargets)
 
 set(BUILD_SHARED_LIBS OFF)
 
@@ -96,6 +100,8 @@ set(MAPTOOLS_CLI_VERSION_REV "${CMAKE_MATCH_3}")
 target_compile_definitions(maptools PRIVATE "MAPTOOLS_CLI_VERSION_MAJOR=${MAPTOOLS_CLI_VERSION_MAJOR}")
 target_compile_definitions(maptools PRIVATE "MAPTOOLS_CLI_VERSION_MINOR=${MAPTOOLS_CLI_VERSION_MINOR}")
 target_compile_definitions(maptools PRIVATE "MAPTOOLS_CLI_VERSION_REV=${MAPTOOLS_CLI_VERSION_REV}")
+
+HARDEN_LINK_FLAGS(TARGET maptools)
 
 ############################
 # App install location
