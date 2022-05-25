@@ -290,12 +290,29 @@ static optional<MapTileset> guessMapTileset(WzMap::Map& wzMap)
 	}
 }
 
+class MapToolsPreviewPlayerColorProvider : public WzMap::MapPlayerColorProvider
+{
+public:
+	~MapToolsPreviewPlayerColorProvider() { }
+
+	// -1 = scavs
+	virtual WzMap::MapPreviewColor getPlayerColor(int8_t mapPlayer) override
+	{
+		if (mapPlayer == PLAYER_SCAVENGERS)
+		{
+			return {1, 255, 255, 255}; // scavs: teal
+		}
+		return {0, 255, 2, 255}; // default: bright green
+	}
+};
+
 static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::string& outputPNGPath)
 {
 	WzMap::MapPreviewColorScheme previewColorScheme;
 	previewColorScheme.hqColor = {255, 0, 255, 255};
 	previewColorScheme.oilResourceColor = {255, 255, 0, 255};
 	previewColorScheme.oilBarrelColor = {128, 192, 0, 255};
+	previewColorScheme.playerColorProvider = std::unique_ptr<WzMap::MapPlayerColorProvider>(new MapToolsPreviewPlayerColorProvider());
 	auto mapTilesetResult = guessMapTileset(map);
 	if (!mapTilesetResult.has_value())
 	{
