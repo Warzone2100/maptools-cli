@@ -103,8 +103,13 @@ macro(HARDEN_C_FLAGS)
 			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-protector")
 		endif()
 	endif()
+
 	# Enable -fstack-clash-protection if available
+	# Note: https://gitlab.kitware.com/cmake/cmake/-/issues/21998
+	set(_old_CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
 	check_c_compiler_flag(-fstack-clash-protection HAS_CFLAG_FSTACK_CLASH_PROTECTION)
+	set(CMAKE_C_FLAGS "${_old_CMAKE_C_FLAGS}")
 	if (HAS_CFLAG_FSTACK_CLASH_PROTECTION AND NOT MINGW)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fstack-clash-protection")
 	endif()
@@ -124,8 +129,13 @@ macro(HARDEN_CXX_FLAGS)
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector")
 		endif()
 	endif()
+
 	# Enable -fstack-clash-protection if available
+	# Note: https://gitlab.kitware.com/cmake/cmake/-/issues/21998
+	set(_old_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 	check_cxx_compiler_flag(-fstack-clash-protection HAS_CXXFLAG_FSTACK_CLASH_PROTECTION)
+	set(CMAKE_CXX_FLAGS "${_old_CMAKE_CXX_FLAGS}")
 	if (HAS_CXXFLAG_FSTACK_CLASH_PROTECTION AND NOT MINGW)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-clash-protection")
 	endif()
