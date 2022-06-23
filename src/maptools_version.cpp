@@ -23,7 +23,7 @@
 #include <wzmaplib/map_version.h>
 #include <nlohmann/json.hpp>
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-#include <zip.h>
+#include <ZipIOProvider.h>
 #endif
 #include <png.h>
 
@@ -37,10 +37,10 @@ std::string generateMapToolsVersionInfo()
 	versionInfo << " wzmaplib/" << WzMap::wzmaplib_version_string();
 	versionInfo << " nlohmann-json/" << stringify_(NLOHMANN_JSON_VERSION_MAJOR) "." stringify_(NLOHMANN_JSON_VERSION_MINOR) "." stringify_(NLOHMANN_JSON_VERSION_PATCH);
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-	const char* verStr = zip_libzip_version();
-	if (verStr)
+	auto zipVerStr = WzMapZipIO::getZipLibraryVersionString();
+	if (!zipVerStr.empty())
 	{
-		versionInfo << " libzip/" << verStr;
+		versionInfo << " " << zipVerStr;
 	}
 #endif
 	versionInfo << " libpng/" << PNG_LIBPNG_VER_STRING;
