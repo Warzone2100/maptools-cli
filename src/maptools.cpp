@@ -419,6 +419,17 @@ static nlohmann::ordered_json generateMapInfoJSON_FromMapStats(const WzMap::Leve
 	{
 //		debug(pCustomLogger, LOG_WARNING, "LevelDetails is missing a valid author");
 	}
+	if (!details.additionalAuthors.empty())
+	{
+		nlohmann::ordered_json otherauthorsinfo = nlohmann::ordered_json::array();
+		for (const auto& author : details.additionalAuthors)
+		{
+			nlohmann::ordered_json authorinfo = nlohmann::ordered_json::object();
+			authorinfo["name"] = author;
+			otherauthorsinfo.push_back(authorinfo);
+		}
+		output["additionalAuthors"] = otherauthorsinfo;
+	}
 	if (!details.license.empty())
 	{
 		output["license"] = details.license;
