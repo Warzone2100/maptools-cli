@@ -1,3 +1,8 @@
+2022-06-23: Version 1.0.2:
+ * Improve CMake config
+ * Update wzmaplib to 1.0.1
+ * Output additionalAuthors to info.json
+
 2022-05-25: Version 1.0.1:
  * Fix vertically-flipped map previews
  * Change default color of scavengers in map previews
