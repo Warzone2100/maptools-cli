@@ -164,6 +164,14 @@ static bool convertMapPackage(const std::string& mapPackageContentsPath, const s
 	{
 		exportIO = std::make_shared<WzMap::StdIOProvider>();
 		outputBasePath = outputPath;
+		if (!outputBasePath.empty())
+		{
+			if (!exportIO->makeDirectory(outputBasePath))
+			{
+				std::cerr << "Failed to create / verify destination directory: " << outputBasePath << std::endl;
+				return false;
+			}
+		}
 	}
 	else
 	{
