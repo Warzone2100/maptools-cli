@@ -1,3 +1,7 @@
+2022-06-23: Version 1.0.3:
+ * Update wzmaplib to 1.0.2
+ * Ensure output directory exists for `package convert --output-uncompressed`
+
 2022-06-23: Version 1.0.2:
  * Improve CMake config
  * Update wzmaplib to 1.0.1
