@@ -279,21 +279,29 @@ static optional<MapTileset> guessMapTileset(WzMap::Map& wzMap)
 		return nullopt;
 	}
 	auto& terrainTypes = pTerrainTypes->terrainTypes;
-	if (terrainTypes[0] == 1 && terrainTypes[1] == 0 && terrainTypes[2] == 2)
+	if (terrainTypes.size() >= 3)
 	{
-		return MapTileset::Arizona;
-	}
-	else if (terrainTypes[0] == 2 && terrainTypes[1] == 2 && terrainTypes[2] == 2)
-	{
-		return MapTileset::Urban;
-	}
-	else if (terrainTypes[0] == 0 && terrainTypes[1] == 0 && terrainTypes[2] == 2)
-	{
-		return MapTileset::Rockies;
+		if (terrainTypes[0] == 1 && terrainTypes[1] == 0 && terrainTypes[2] == 2)
+		{
+			return MapTileset::Arizona;
+		}
+		else if (terrainTypes[0] == 2 && terrainTypes[1] == 2 && terrainTypes[2] == 2)
+		{
+			return MapTileset::Urban;
+		}
+		else if (terrainTypes[0] == 0 && terrainTypes[1] == 0 && terrainTypes[2] == 2)
+		{
+			return MapTileset::Rockies;
+		}
+		else
+		{
+			std::cerr << "Unknown terrain types signature: " << terrainTypes[0] << terrainTypes[1] << terrainTypes[2] << "; defaulting to Arizona tilset." << std::endl;
+			return MapTileset::Arizona;
+		}
 	}
 	else
 	{
-		std::cerr << "Unknown terrain types signature: " << terrainTypes[0] << terrainTypes[1] << terrainTypes[2] << "; defaulting to Arizona tilset." << std::endl;
+		std::cerr << "Unknown terrain types; defaulting to Arizona tilset." << std::endl;
 		return MapTileset::Arizona;
 	}
 }
