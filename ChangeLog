@@ -1,3 +1,8 @@
+2023-04-07: Version 1.0.5:
+ * Update wzmaplib to 1.0.5
+ * Fix: Possible crash in guessMapTileset
+ * C++14 is now required
+
 2022-06-24: Version 1.0.4:
  * Update wzmaplib to 1.0.3
 
