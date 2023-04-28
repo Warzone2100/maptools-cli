@@ -480,6 +480,7 @@ static nlohmann::ordered_json generateMapInfoJSON_FromMapStats(const WzMap::Leve
 	output["scavenger"] = std::move(scavengerCounts);
 	output["oilWells"] = stats.oilWellsTotal;
 	auto perPlayerCounts = nlohmann::ordered_json::object();
+	perPlayerCounts["units"] = stats.unitsPerPlayer;
 	perPlayerCounts["resourceExtractors"] = stats.resourceExtractorsPerPlayer;
 	perPlayerCounts["powerGenerators"] = stats.powerGeneratorsPerPlayer;
 	perPlayerCounts["regFactories"] = stats.regFactoriesPerPlayer;
@@ -493,6 +494,9 @@ static nlohmann::ordered_json generateMapInfoJSON_FromMapStats(const WzMap::Leve
 	startEquality["resourceExtractors"] = stats.playerBalance.resourceExtractors;
 	startEquality["powerGenerators"] = stats.playerBalance.powerGenerators;
 	startEquality["factories"] = stats.playerBalance.factories;
+	startEquality["regFactories"] = stats.playerBalance.regFactories;
+	startEquality["vtolFactories"] = stats.playerBalance.vtolFactories;
+	startEquality["cyborgFactories"] = stats.playerBalance.cyborgFactories;
 	startEquality["researchCenters"] = stats.playerBalance.researchCenters;
 	auto balance = nlohmann::ordered_json::object();
 	balance["startEquality"] = std::move(startEquality);
