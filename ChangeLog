@@ -1,3 +1,8 @@
+2023-04-28: Version 1.0.6:
+ * Update wzmaplib to 1.0.6
+ * Output additional player and balance information to info.json
+ * Output additional structures count to info.json
+
 2023-04-07: Version 1.0.5:
  * Update wzmaplib to 1.0.5
  * Fix: Possible crash in guessMapTileset
