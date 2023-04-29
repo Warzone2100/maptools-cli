@@ -481,6 +481,7 @@ static nlohmann::ordered_json generateMapInfoJSON_FromMapStats(const WzMap::Leve
 	output["oilWells"] = stats.oilWellsTotal;
 	auto perPlayerCounts = nlohmann::ordered_json::object();
 	perPlayerCounts["units"] = stats.unitsPerPlayer;
+	perPlayerCounts["structures"] = stats.structuresPerPlayer;
 	perPlayerCounts["resourceExtractors"] = stats.resourceExtractorsPerPlayer;
 	perPlayerCounts["powerGenerators"] = stats.powerGeneratorsPerPlayer;
 	perPlayerCounts["regFactories"] = stats.regFactoriesPerPlayer;
