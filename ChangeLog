@@ -1,3 +1,7 @@
+2023-05-01: Version 1.1.0:
+ * Update wzmaplib to 1.1.0
+ * Output min + max player counts to info.json
+
 2023-04-28: Version 1.0.6:
  * Update wzmaplib to 1.0.6
  * Output additional player and balance information to info.json
