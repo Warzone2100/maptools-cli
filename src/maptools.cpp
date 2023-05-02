@@ -416,6 +416,25 @@ static bool generateMapPreviewPNG_FromMapDirectory(WzMap::MapType mapType, uint3
 	return generateMapPreviewPNG_FromMapObject(*(wzMap.get()), outputPNGPath);
 }
 
+namespace nlohmann {
+	template<>
+	struct adl_serializer<WzMap::MapStats::PerPlayerCounts::MinMax> {
+		static void to_json(ordered_json& j, const WzMap::MapStats::PerPlayerCounts::MinMax& p) {
+			j = nlohmann::ordered_json::object();
+			j["min"] = p.min;
+			j["max"] = p.max;
+		}
+
+		static void from_json(const ordered_json& j, WzMap::MapStats::PerPlayerCounts::MinMax& p) {
+			if (j.is_object())
+			{
+				p.min = j["min"].get<uint32_t>();
+				p.max = j["max"].get<uint32_t>();
+			}
+		}
+	};
+}
+
 static nlohmann::ordered_json generateMapInfoJSON_FromMapStats(const WzMap::LevelDetails details, const WzMap::MapStats& stats, std::shared_ptr<MapToolDebugLogger> logger)
 {
 	nlohmann::ordered_json output = nlohmann::ordered_json::object();
@@ -480,14 +499,14 @@ static nlohmann::ordered_json generateMapInfoJSON_FromMapStats(const WzMap::Leve
 	output["scavenger"] = std::move(scavengerCounts);
 	output["oilWells"] = stats.oilWellsTotal;
 	auto perPlayerCounts = nlohmann::ordered_json::object();
-	perPlayerCounts["units"] = stats.unitsPerPlayer;
-	perPlayerCounts["structures"] = stats.structuresPerPlayer;
-	perPlayerCounts["resourceExtractors"] = stats.resourceExtractorsPerPlayer;
-	perPlayerCounts["powerGenerators"] = stats.powerGeneratorsPerPlayer;
-	perPlayerCounts["regFactories"] = stats.regFactoriesPerPlayer;
-	perPlayerCounts["vtolFactories"] = stats.vtolFactoriesPerPlayer;
-	perPlayerCounts["cyborgFactories"] = stats.cyborgFactoriesPerPlayer;
-	perPlayerCounts["researchCenters"] = stats.researchCentersPerPlayer;
+	perPlayerCounts["units"] = stats.perPlayerCounts.unitsPerPlayer;
+	perPlayerCounts["structures"] = stats.perPlayerCounts.structuresPerPlayer;
+	perPlayerCounts["resourceExtractors"] = stats.perPlayerCounts.resourceExtractorsPerPlayer;
+	perPlayerCounts["powerGenerators"] = stats.perPlayerCounts.powerGeneratorsPerPlayer;
+	perPlayerCounts["regFactories"] = stats.perPlayerCounts.regFactoriesPerPlayer;
+	perPlayerCounts["vtolFactories"] = stats.perPlayerCounts.vtolFactoriesPerPlayer;
+	perPlayerCounts["cyborgFactories"] = stats.perPlayerCounts.cyborgFactoriesPerPlayer;
+	perPlayerCounts["researchCenters"] = stats.perPlayerCounts.researchCentersPerPlayer;
 	output["player"] = std::move(perPlayerCounts);
 	auto startEquality = nlohmann::ordered_json::object();
 	startEquality["units"] = stats.playerBalance.units;
