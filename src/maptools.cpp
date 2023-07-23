@@ -264,14 +264,7 @@ static bool convertMap(WzMap::MapType mapType, uint32_t mapMaxPlayers, const std
 	return true;
 }
 
-enum class MapTileset
-{
-	Arizona,
-	Urban,
-	Rockies
-};
-
-static optional<MapTileset> guessMapTileset(WzMap::Map& wzMap)
+static optional<MAP_TILESET> guessMapTileset(WzMap::Map& wzMap)
 {
 	auto pTerrainTypes = wzMap.mapTerrainTypes();
 	if (!pTerrainTypes)
@@ -283,26 +276,26 @@ static optional<MapTileset> guessMapTileset(WzMap::Map& wzMap)
 	{
 		if (terrainTypes[0] == 1 && terrainTypes[1] == 0 && terrainTypes[2] == 2)
 		{
-			return MapTileset::Arizona;
+			return MAP_TILESET::ARIZONA;
 		}
 		else if (terrainTypes[0] == 2 && terrainTypes[1] == 2 && terrainTypes[2] == 2)
 		{
-			return MapTileset::Urban;
+			return MAP_TILESET::URBAN;
 		}
 		else if (terrainTypes[0] == 0 && terrainTypes[1] == 0 && terrainTypes[2] == 2)
 		{
-			return MapTileset::Rockies;
+			return MAP_TILESET::ROCKIES;
 		}
 		else
 		{
 			std::cerr << "Unknown terrain types signature: " << terrainTypes[0] << terrainTypes[1] << terrainTypes[2] << "; defaulting to Arizona tilset." << std::endl;
-			return MapTileset::Arizona;
+			return MAP_TILESET::ARIZONA;
 		}
 	}
 	else
 	{
 		std::cerr << "Unknown terrain types; defaulting to Arizona tilset." << std::endl;
-		return MapTileset::Arizona;
+		return MAP_TILESET::ARIZONA;
 	}
 }
 
@@ -322,14 +315,22 @@ public:
 	}
 };
 
-static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::string& outputPNGPath)
+static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::string& outputPNGPath, optional<WzMap::LevelDetails> levelDetails = nullopt)
 {
 	WzMap::MapPreviewColorScheme previewColorScheme;
 	previewColorScheme.hqColor = {255, 0, 255, 255};
 	previewColorScheme.oilResourceColor = {255, 255, 0, 255};
 	previewColorScheme.oilBarrelColor = {128, 192, 0, 255};
 	previewColorScheme.playerColorProvider = std::unique_ptr<WzMap::MapPlayerColorProvider>(new MapToolsPreviewPlayerColorProvider());
-	auto mapTilesetResult = guessMapTileset(map);
+	optional<MAP_TILESET> mapTilesetResult;
+	if (levelDetails.has_value())
+	{
+		mapTilesetResult = levelDetails.value().tileset;
+	}
+	else
+	{
+		mapTilesetResult = guessMapTileset(map);
+	}
 	if (!mapTilesetResult.has_value())
 	{
 		// Failed to guess the map tilset - presumably an error loading the map
@@ -338,13 +339,13 @@ static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::stri
 	}
 	switch (mapTilesetResult.value())
 	{
-	case MapTileset::Arizona:
+	case MAP_TILESET::ARIZONA:
 		previewColorScheme.tilesetColors = WzMap::TilesetColorScheme::TilesetArizona();
 		break;
-	case MapTileset::Urban:
+	case MAP_TILESET::URBAN:
 		previewColorScheme.tilesetColors = WzMap::TilesetColorScheme::TilesetUrban();
 		break;
-	case MapTileset::Rockies:
+	case MAP_TILESET::ROCKIES:
 		previewColorScheme.tilesetColors = WzMap::TilesetColorScheme::TilesetRockies();
 		break;
 	}
@@ -386,7 +387,7 @@ static bool generateMapPreviewPNG_FromPackageContents(const std::string& mapPack
 		return false;
 	}
 
-	return generateMapPreviewPNG_FromMapObject(*(wzMap.get()), outputPNGPath);
+	return generateMapPreviewPNG_FromMapObject(*(wzMap.get()), outputPNGPath, wzMapPackage->levelDetails());
 }
 
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
