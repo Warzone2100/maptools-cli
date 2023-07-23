@@ -73,6 +73,7 @@ Generate a map preview PNG
 | `-h`,`--help` | Print help message and exit | | |
 | `-i`,`--input` | Input map package (.wz package, or extracted package folder) | TEXT:PATH | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
 | `-o`,`--output` | Output PNG filename (+ path) | TEXT:PATH | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
+| `-c`,`--playercolors` | Player colors | ENUM:value in {`simple`, `wz`} | DEFAULTS to `simple` |
 
 ## `maptools package info`
 
@@ -127,6 +128,7 @@ Both `inputmapdir` and the parent directory for the output filename (`output`) m
 | `-p`,`--maxplayers` | Map max players | UINT:INT in [1 - 10] | REQUIRED |
 | `-i`,`--input` | Input map directory | TEXT:DIR | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
 | `-o`,`--output` | Output PNG filename (+ path) | TEXT:FILE(\*.png) | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
+| `-c`,`--playercolors` | Player colors | ENUM:value in {`simple`, `wz`} | DEFAULTS to `simple` |
 
 # Output Level Info Formats
 | [format] | Description | flaME | WZ < 3.4 | WZ 3.4+ | WZ 4.1+ | WZ 4.3+ |

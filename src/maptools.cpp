@@ -299,10 +299,10 @@ static optional<MAP_TILESET> guessMapTileset(WzMap::Map& wzMap)
 	}
 }
 
-class MapToolsPreviewPlayerColorProvider : public WzMap::MapPlayerColorProvider
+class MapToolsPreviewSimplePlayerColorProvider : public WzMap::MapPlayerColorProvider
 {
 public:
-	~MapToolsPreviewPlayerColorProvider() { }
+	~MapToolsPreviewSimplePlayerColorProvider() { }
 
 	// -1 = scavs
 	virtual WzMap::MapPreviewColor getPlayerColor(int8_t mapPlayer) override
@@ -315,13 +315,73 @@ public:
 	}
 };
 
-static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::string& outputPNGPath, optional<WzMap::LevelDetails> levelDetails = nullopt)
+class MapToolsPreviewVariedPlayerColorProvider : public WzMap::MapPlayerColorProvider
+{
+public:
+	~MapToolsPreviewVariedPlayerColorProvider() { }
+
+	// -1 = scavs
+	virtual WzMap::MapPreviewColor getPlayerColor(int8_t mapPlayer) override
+	{
+		if (mapPlayer == PLAYER_SCAVENGERS)
+		{
+			return { 211, 253, 254 }; // (this should hopefully not conflict with other standard player colors, and should be fairly easy to distinguish from terrain tile colors)
+		}
+		if (mapPlayer >= maxClanColours)
+		{
+			// out of bounds
+			return {0, 0, 0, 255};
+		}
+		return clanColours[mapPlayer];
+	}
+private:
+	static constexpr size_t maxClanColours = 16;
+	WzMap::MapPreviewColor clanColours[maxClanColours] =
+	{
+		// NOTE: These do not exactly match the default *order* in WZ (which is randomized when starting a new skirmish game anyway),
+		// but they do match the colors used
+		// [r,g,b,a]
+		{0, 255, 0, 255},		// green  Player 0
+		{255, 192, 40, 255},          // orange Player 1
+//		{255, 255, 255, 255},	// grey   Player 2
+		{55, 55, 55, 255},			// black  Player 3	// NOTE: To match WZ, this is actually set to a dark grey color in map previews to be more visible
+		{255, 0, 0, 255},		// red    Player 4
+		{20, 20, 255, 255},		// blue   Player 5
+		{255, 0, 192, 255},           // pink   Player 6
+		{0, 255, 255, 255},		// cyan   Player 7
+		{255, 255, 0, 255},           // yellow Player 8
+		{144, 0, 255, 255},           // purple Player 9
+		{255, 255, 255, 255},	// grey   Player 2
+		{200, 255, 255, 255},         // white  Player A (Should be brighter than grey, but grey is already maximum.)
+		{128, 128, 255, 255},         // bright blue Player B
+		{128, 255, 128, 255},         // neon green  Player C
+		{128, 0, 0, 255},             // infrared    Player D
+		{64, 0, 128, 255},            // ultraviolet Player E
+		{128, 128, 0, 255},           // brown       Player F
+	};
+};
+
+enum class MapToolsPreviewColorProvider
+{
+	Simple,
+	WZPlayerColors
+};
+
+static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, optional<WzMap::LevelDetails> levelDetails = nullopt)
 {
 	WzMap::MapPreviewColorScheme previewColorScheme;
 	previewColorScheme.hqColor = {255, 0, 255, 255};
 	previewColorScheme.oilResourceColor = {255, 255, 0, 255};
 	previewColorScheme.oilBarrelColor = {128, 192, 0, 255};
-	previewColorScheme.playerColorProvider = std::unique_ptr<WzMap::MapPlayerColorProvider>(new MapToolsPreviewPlayerColorProvider());
+	switch (playerColorProvider)
+	{
+		case MapToolsPreviewColorProvider::Simple:
+			previewColorScheme.playerColorProvider = std::unique_ptr<WzMap::MapPlayerColorProvider>(new MapToolsPreviewSimplePlayerColorProvider());
+			break;
+		case MapToolsPreviewColorProvider::WZPlayerColors:
+			previewColorScheme.playerColorProvider = std::unique_ptr<WzMap::MapPlayerColorProvider>(new MapToolsPreviewVariedPlayerColorProvider());
+			break;
+	}
 	optional<MAP_TILESET> mapTilesetResult;
 	if (levelDetails.has_value())
 	{
@@ -368,7 +428,7 @@ static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::stri
 	return true;
 }
 
-static bool generateMapPreviewPNG_FromPackageContents(const std::string& mapPackageContentsPath, const std::string& outputPNGPath, bool verbose, std::shared_ptr<WzMap::IOProvider> mapIO = std::shared_ptr<WzMap::IOProvider>(new WzMap::StdIOProvider()))
+static bool generateMapPreviewPNG_FromPackageContents(const std::string& mapPackageContentsPath, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, bool verbose, std::shared_ptr<WzMap::IOProvider> mapIO = std::shared_ptr<WzMap::IOProvider>(new WzMap::StdIOProvider()))
 {
 	auto logger = std::make_shared<MapToolDebugLogger>(new MapToolDebugLogger(verbose));
 
@@ -387,11 +447,11 @@ static bool generateMapPreviewPNG_FromPackageContents(const std::string& mapPack
 		return false;
 	}
 
-	return generateMapPreviewPNG_FromMapObject(*(wzMap.get()), outputPNGPath, wzMapPackage->levelDetails());
+	return generateMapPreviewPNG_FromMapObject(*(wzMap.get()), outputPNGPath, playerColorProvider, wzMapPackage->levelDetails());
 }
 
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-static bool generateMapPreviewPNG_FromArchive(const std::string& mapArchive, const std::string& outputPNGPath, bool verbose)
+static bool generateMapPreviewPNG_FromArchive(const std::string& mapArchive, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, bool verbose)
 {
 	auto zipArchive = WzMapZipIO::openZipArchiveFS(mapArchive.c_str());
 	if (!zipArchive)
@@ -400,11 +460,11 @@ static bool generateMapPreviewPNG_FromArchive(const std::string& mapArchive, con
 		return false;
 	}
 
-	return generateMapPreviewPNG_FromPackageContents("", outputPNGPath, verbose, zipArchive);
+	return generateMapPreviewPNG_FromPackageContents("", outputPNGPath, playerColorProvider, verbose, zipArchive);
 }
 #endif // !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
 
-static bool generateMapPreviewPNG_FromMapDirectory(WzMap::MapType mapType, uint32_t mapMaxPlayers, const std::string& inputMapDirectory, const std::string& outputPNGPath, bool verbose)
+static bool generateMapPreviewPNG_FromMapDirectory(WzMap::MapType mapType, uint32_t mapMaxPlayers, const std::string& inputMapDirectory, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, bool verbose)
 {
 	auto wzMap = WzMap::Map::loadFromPath(inputMapDirectory, mapType, mapMaxPlayers, rand(), std::make_shared<MapToolDebugLogger>(new MapToolDebugLogger(verbose)));
 	if (!wzMap)
@@ -414,7 +474,7 @@ static bool generateMapPreviewPNG_FromMapDirectory(WzMap::MapType mapType, uint3
 		return false;
 	}
 
-	return generateMapPreviewPNG_FromMapObject(*(wzMap.get()), outputPNGPath);
+	return generateMapPreviewPNG_FromMapObject(*(wzMap.get()), outputPNGPath, playerColorProvider);
 }
 
 namespace nlohmann {
@@ -643,6 +703,7 @@ static optional<nlohmann::ordered_json> generateMapInfoJSON_FromArchive(const st
 static const std::map<std::string, WzMap::MapType> maptype_map{{"skirmish", WzMap::MapType::SKIRMISH}, {"campaign", WzMap::MapType::CAMPAIGN}};
 static const std::map<std::string, WzMap::LevelFormat> levelformat_map{{"latest", WzMap::LatestLevelFormat}, {"json", WzMap::LevelFormat::JSON}, {"lev", WzMap::LevelFormat::LEV}};
 static const std::map<std::string, WzMap::OutputFormat> outputformat_map{{"latest", WzMap::LatestOutputFormat}, {"jsonv2", WzMap::OutputFormat::VER3}, {"json", WzMap::OutputFormat::VER2}, {"bjo", WzMap::OutputFormat::VER1_BINARY_OLD}};
+static const std::map<std::string, MapToolsPreviewColorProvider> previewcolors_map{{"simple", MapToolsPreviewColorProvider::Simple}, {"wz", MapToolsPreviewColorProvider::WZPlayerColors}};
 
 static bool strEndsWith(const std::string& str, const std::string& suffix)
 {
@@ -753,11 +814,15 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 	sub_preview->add_option("-o,--output,output", preview_outputPNGFilename, "Output PNG filename (+ path)")
 		->required()
 		->check(FileExtensionValidator(".png"));
+	static MapToolsPreviewColorProvider preview_PlayerColorProvider = MapToolsPreviewColorProvider::Simple;
+	sub_preview->add_option("-c,--playercolors", preview_PlayerColorProvider, "Player colors")
+		->transform(CLI::CheckedTransformer(previewcolors_map, CLI::ignore_case).description("value in {\n\t\tsimple -> use one color for scavs, one color for players,\n\t\twz -> use WZ colors for players (distinct)\n\t}"))
+		->default_val("simple");
 	sub_preview->callback([&]() {
 		if (inputPathIsFile(preview_inputMap))
 		{
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-			if (!generateMapPreviewPNG_FromArchive(preview_inputMap, preview_outputPNGFilename, verbose))
+			if (!generateMapPreviewPNG_FromArchive(preview_inputMap, preview_outputPNGFilename, preview_PlayerColorProvider, verbose))
 			{
 				retVal = 1;
 			}
@@ -768,7 +833,7 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 		}
 		else
 		{
-			if (!generateMapPreviewPNG_FromPackageContents(preview_inputMap, preview_outputPNGFilename, verbose))
+			if (!generateMapPreviewPNG_FromPackageContents(preview_inputMap, preview_outputPNGFilename, preview_PlayerColorProvider, verbose))
 			{
 				retVal = 1;
 			}
@@ -886,8 +951,12 @@ static void addSubCommand_Map(CLI::App& app, int& retVal, bool& verbose)
 	sub_preview->add_option("-o,--output,output", preview_outputPNGFilename, "Output PNG filename (+ path)")
 		->required()
 		->check(FileExtensionValidator(".png"));
+	static MapToolsPreviewColorProvider preview_PlayerColorProvider = MapToolsPreviewColorProvider::Simple;
+	sub_preview->add_option("-c,--playercolors", preview_PlayerColorProvider, "Player colors")
+		->transform(CLI::CheckedTransformer(previewcolors_map, CLI::ignore_case).description("value in {\n\t\tsimple -> use one color for scavs, one color for players,\n\t\twz -> use WZ colors for players (distinct)\n\t}"))
+		->default_val("simple");
 	sub_preview->callback([&]() {
-		if (!generateMapPreviewPNG_FromMapDirectory(preview_mapType, preview_mapMaxPlayers, preview_inputMapDirectory, preview_outputPNGFilename, verbose))
+		if (!generateMapPreviewPNG_FromMapDirectory(preview_mapType, preview_mapMaxPlayers, preview_inputMapDirectory, preview_outputPNGFilename, preview_PlayerColorProvider, verbose))
 		{
 			retVal = 1;
 		}
