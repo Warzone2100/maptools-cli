@@ -1,3 +1,7 @@
+2023-07-23: Version 1.1.2:
+ * Use LevelDetails.tileset if possible (i.e. if loading a map package)
+ * Add --playercolors option for genpreview command
+
 2023-07-18: Version 1.1.1:
  * Update wzmaplib to 1.1.1
 
