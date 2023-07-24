@@ -582,6 +582,19 @@ static nlohmann::ordered_json generateMapInfoJSON_FromMapStats(const WzMap::Leve
 	auto balance = nlohmann::ordered_json::object();
 	balance["startEquality"] = std::move(startEquality);
 	output["balance"] = std::move(balance);
+	auto playerHQPositions = nlohmann::ordered_json::array();
+	for (uint8_t playerIdx = 0; playerIdx < details.players; ++playerIdx)
+	{
+		auto it = stats.playerHQPositions.find(playerIdx);
+		auto hqPos = nlohmann::ordered_json::object();
+		if (it != stats.playerHQPositions.end() && !it->second.empty())
+		{
+			hqPos["x"] = it->second.back().first;
+			hqPos["y"] = it->second.back().second;
+		}
+		playerHQPositions.push_back(hqPos);
+	}
+	output["hq"] = playerHQPositions;
 
 	return output;
 }
