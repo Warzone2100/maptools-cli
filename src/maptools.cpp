@@ -367,7 +367,7 @@ enum class MapToolsPreviewColorProvider
 	WZPlayerColors
 };
 
-static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, optional<WzMap::LevelDetails> levelDetails = nullopt)
+static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, const WzMap::LevelDetails &levelDetails)
 {
 	WzMap::MapPreviewColorScheme previewColorScheme;
 	previewColorScheme.hqColor = {255, 0, 255, 255};
@@ -382,22 +382,7 @@ static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::stri
 			previewColorScheme.playerColorProvider = std::unique_ptr<WzMap::MapPlayerColorProvider>(new MapToolsPreviewVariedPlayerColorProvider());
 			break;
 	}
-	optional<MAP_TILESET> mapTilesetResult;
-	if (levelDetails.has_value())
-	{
-		mapTilesetResult = levelDetails.value().tileset;
-	}
-	else
-	{
-		mapTilesetResult = guessMapTileset(map);
-	}
-	if (!mapTilesetResult.has_value())
-	{
-		// Failed to guess the map tilset - presumably an error loading the map
-		std::cerr << "Failed to guess map tilset" << std::endl;
-		return false;
-	}
-	switch (mapTilesetResult.value())
+	switch (levelDetails.tileset)
 	{
 	case MAP_TILESET::ARIZONA:
 		previewColorScheme.tilesetColors = WzMap::TilesetColorScheme::TilesetArizona();
@@ -410,7 +395,7 @@ static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::stri
 		break;
 	}
 
-	auto previewResult = WzMap::generate2DMapPreview(map, previewColorScheme);
+	auto previewResult = WzMap::generate2DMapPreview(map, previewColorScheme, WzMap::MapStatsConfiguration(levelDetails.type));
 	if (!previewResult)
 	{
 		std::cerr << "Failed to generate map preview" << std::endl;
@@ -474,7 +459,21 @@ static bool generateMapPreviewPNG_FromMapDirectory(WzMap::MapType mapType, uint3
 		return false;
 	}
 
-	return generateMapPreviewPNG_FromMapObject(*(wzMap.get()), outputPNGPath, playerColorProvider);
+	WzMap::LevelDetails synthesizedLevelDetails;
+	synthesizedLevelDetails.name = "";
+	synthesizedLevelDetails.type = mapType;
+	synthesizedLevelDetails.players = mapMaxPlayers;
+	optional<MAP_TILESET> mapTilesetResult = guessMapTileset(*wzMap.get());
+	if (!mapTilesetResult.has_value())
+	{
+		// Failed to guess the map tilset - presumably an error loading the map
+		std::cerr << "Failed to guess map tilset" << std::endl;
+		return false;
+	}
+	synthesizedLevelDetails.tileset = mapTilesetResult.value();
+	synthesizedLevelDetails.mapFolderPath = "";
+
+	return generateMapPreviewPNG_FromMapObject(*(wzMap.get()), outputPNGPath, playerColorProvider, synthesizedLevelDetails);
 }
 
 namespace nlohmann {
