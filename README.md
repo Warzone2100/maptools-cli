@@ -75,6 +75,7 @@ Generate a map preview PNG
 | `-i`,`--input` | Input map package (.wz package, or extracted package folder) | TEXT:PATH | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
 | `-o`,`--output` | Output PNG filename (+ path) | TEXT:PATH | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
 | `-c`,`--playercolors` | Player colors | ENUM:value in {`simple`, `wz`} | DEFAULTS to `simple` |
+| `--scavcolor` | Specify the scavengers hex color | RGB hex color code | DEFAULTS to `#800000` (maroon) |
 
 ## `maptools package info`
 
@@ -130,6 +131,7 @@ Both `inputmapdir` and the parent directory for the output filename (`output`) m
 | `-i`,`--input` | Input map directory | TEXT:DIR | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
 | `-o`,`--output` | Output PNG filename (+ path) | TEXT:FILE(\*.png) | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
 | `-c`,`--playercolors` | Player colors | ENUM:value in {`simple`, `wz`} | DEFAULTS to `simple` |
+| `--scavcolor` | Specify the scavengers hex color | RGB hex color code | DEFAULTS to `#800000` (maroon) |
 
 # Output Level Info Formats
 | [format] | Description | flaME | WZ < 3.4 | WZ 3.4+ | WZ 4.1+ | WZ 4.3+ |
