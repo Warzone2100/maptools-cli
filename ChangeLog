@@ -1,3 +1,7 @@
+2023-08-07: Version 1.2.1:
+ * Update wzmaplib to 1.2.1
+ * Add optional --set-name parameter for package convert command
+
 2023-08-03: Version 1.2.0:
  * Update wzmaplib to 1.2.0
  * Improve genpreview output for structures
