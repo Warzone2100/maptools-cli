@@ -574,6 +574,7 @@ static nlohmann::ordered_json generateMapInfoJSON_FromMapStats(const WzMap::Leve
 	perPlayerCounts["vtolFactories"] = stats.perPlayerCounts.vtolFactoriesPerPlayer;
 	perPlayerCounts["cyborgFactories"] = stats.perPlayerCounts.cyborgFactoriesPerPlayer;
 	perPlayerCounts["researchCenters"] = stats.perPlayerCounts.researchCentersPerPlayer;
+	perPlayerCounts["defenseStructures"] = stats.perPlayerCounts.defenseStructuresPerPlayer;
 	output["player"] = std::move(perPlayerCounts);
 	auto startEquality = nlohmann::ordered_json::object();
 	startEquality["units"] = stats.playerBalance.units;
@@ -585,6 +586,7 @@ static nlohmann::ordered_json generateMapInfoJSON_FromMapStats(const WzMap::Leve
 	startEquality["vtolFactories"] = stats.playerBalance.vtolFactories;
 	startEquality["cyborgFactories"] = stats.playerBalance.cyborgFactories;
 	startEquality["researchCenters"] = stats.playerBalance.researchCenters;
+	startEquality["defenseStructures"] = stats.playerBalance.defenseStructures;
 	auto balance = nlohmann::ordered_json::object();
 	balance["startEquality"] = std::move(startEquality);
 	output["balance"] = std::move(balance);
