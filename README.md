@@ -53,6 +53,7 @@ Convert a map from one format to another
 | `-o`,`--output` | Output path | TEXT:PATH | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
 | `--preserve-mods` | Copy other files from the original map package (i.e. the extra files / modifications in a map-mod) | | |
 | `--output-uncompressed` | Output uncompressed to a folder (not in a .wz file) | | |
+| `--set-name` | Set / override the map name when converting | | |
 
 > Note: When converting a script-generated map:
 > - If the output format is `jsonv2` (or later) the map script will be preserved

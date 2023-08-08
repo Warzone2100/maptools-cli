@@ -139,7 +139,7 @@ inline std::ostream &operator<<(std::ostream &os, const LevelFormat& levelFormat
 } // namespace WzMap
 
 
-static bool convertMapPackage(const std::string& mapPackageContentsPath, const std::string& outputPath, WzMap::LevelFormat levelFormat, WzMap::OutputFormat outputFormat, bool copyAdditionalFiles, bool verbose, bool exportUncompressed, bool fixedLastMod, std::shared_ptr<WzMap::IOProvider> mapIO = std::shared_ptr<WzMap::IOProvider>(new WzMap::StdIOProvider()))
+static bool convertMapPackage(const std::string& mapPackageContentsPath, const std::string& outputPath, WzMap::LevelFormat levelFormat, WzMap::OutputFormat outputFormat, bool copyAdditionalFiles, bool verbose, bool exportUncompressed, bool fixedLastMod, optional<std::string> override_map_name = nullopt, std::shared_ptr<WzMap::IOProvider> mapIO = std::shared_ptr<WzMap::IOProvider>(new WzMap::StdIOProvider()))
 {
 	auto logger = std::make_shared<MapToolDebugLogger>(new MapToolDebugLogger(verbose));
 
@@ -189,6 +189,13 @@ static bool convertMapPackage(const std::string& mapPackageContentsPath, const s
 #endif // !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
 	}
 
+	if (override_map_name.has_value())
+	{
+		WzMap::LevelDetails modifiedLevelDetails = wzMapPackage->levelDetails();
+		modifiedLevelDetails.name = override_map_name.value();
+		wzMapPackage->updateLevelDetails(modifiedLevelDetails);
+	}
+
 	if (!wzMapPackage->exportMapPackageFiles(outputBasePath, levelFormat, outputFormat, nullopt, copyAdditionalFiles, logger, exportIO))
 	{
 		// Failed to export map package
@@ -216,7 +223,7 @@ static bool convertMapPackage(const std::string& mapPackageContentsPath, const s
 }
 
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-static bool convertMapPackage_FromArchive(const std::string& mapArchive, const std::string& outputPath, WzMap::LevelFormat levelFormat, WzMap::OutputFormat outputFormat, bool copyAdditionalFiles, bool verbose, bool outputUncompressed, bool fixedLastMod)
+static bool convertMapPackage_FromArchive(const std::string& mapArchive, const std::string& outputPath, WzMap::LevelFormat levelFormat, WzMap::OutputFormat outputFormat, bool copyAdditionalFiles, bool verbose, bool outputUncompressed, bool fixedLastMod, optional<std::string> override_map_name)
 {
 	auto zipArchive = WzMapZipIO::openZipArchiveFS(mapArchive.c_str());
 	if (!zipArchive)
@@ -225,7 +232,7 @@ static bool convertMapPackage_FromArchive(const std::string& mapArchive, const s
 		return false;
 	}
 
-	return convertMapPackage("", outputPath, levelFormat, outputFormat, copyAdditionalFiles, verbose, outputUncompressed, fixedLastMod, zipArchive);
+	return convertMapPackage("", outputPath, levelFormat, outputFormat, copyAdditionalFiles, verbose, outputUncompressed, fixedLastMod, override_map_name, zipArchive);
 }
 #endif // !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
 
@@ -793,11 +800,18 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 	sub_convert->add_flag("--fixed-lastmod", sub_convert_fixed_last_mod, "Fixed last modification date (if outputting to a .wz archive)");
 	static bool sub_convert_uncompressed = false;
 	sub_convert->add_flag("--output-uncompressed", sub_convert_uncompressed, "Output uncompressed to a folder (not in a .wz file)");
+	static std::string override_map_name;
+	sub_convert->add_option("--set-name", override_map_name, "Set / override the map name when converting");
 	sub_convert->callback([&]() {
+		optional<std::string> override_map_name_opt = nullopt;
+		if (!override_map_name.empty())
+		{
+			override_map_name_opt = override_map_name;
+		}
 		if (inputPathIsFile(inputMapPackage))
 		{
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-			if (!convertMapPackage_FromArchive(inputMapPackage, outputPath, outputLevelFormat, outputMapFormat, sub_convert_copyadditionalfiles, verbose, sub_convert_uncompressed, sub_convert_fixed_last_mod))
+			if (!convertMapPackage_FromArchive(inputMapPackage, outputPath, outputLevelFormat, outputMapFormat, sub_convert_copyadditionalfiles, verbose, sub_convert_uncompressed, sub_convert_fixed_last_mod, override_map_name_opt))
 			{
 				retVal = 1;
 			}
@@ -808,7 +822,7 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 		}
 		else
 		{
-			if (!convertMapPackage(inputMapPackage, outputPath, outputLevelFormat, outputMapFormat, sub_convert_copyadditionalfiles, verbose, sub_convert_uncompressed, sub_convert_fixed_last_mod))
+			if (!convertMapPackage(inputMapPackage, outputPath, outputLevelFormat, outputMapFormat, sub_convert_copyadditionalfiles, verbose, sub_convert_uncompressed, sub_convert_fixed_last_mod, override_map_name_opt))
 			{
 				retVal = 1;
 			}
