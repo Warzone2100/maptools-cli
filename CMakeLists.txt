@@ -7,7 +7,7 @@ else()
 	set(_cmake_min_ver_supported 3.11) # CMake 3.11 is the minimum version for FetchContent
 endif()
 
-cmake_minimum_required(VERSION ${_cmake_min_ver_supported}...3.14)
+cmake_minimum_required(VERSION ${_cmake_min_ver_supported}...3.24)
 
 set(_OLD_CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}")
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -47,7 +47,7 @@ if(NOT TARGET wzmaplib)
 	FetchContent_Declare(
 		warzone2100_repo
 		GIT_REPOSITORY https://github.com/Warzone2100/warzone2100.git
-		GIT_TAG        2bcc995cda3fb21e566f813fd1d2623d729fb2f1
+		GIT_TAG        1270c8ad7cedcc7530b64d43adab05eaaf344319
 		GIT_PROGRESS   TRUE
 		USES_TERMINAL_DOWNLOAD	TRUE
 	)
