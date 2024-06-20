@@ -1,3 +1,6 @@
+2024-06-20: Version 1.2.6:
+ * Update wzmaplib to 1.2.6
+
 2024-06-02: Version 1.2.5:
  * Update wzmaplib to 1.2.5
  * Fix outputting map paths to old .lev files
