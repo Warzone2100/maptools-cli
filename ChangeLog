@@ -1,3 +1,7 @@
+2024-08-01: Version 1.2.7:
+ * Update wzmaplib to 1.2.7
+ * Add --layers option for genpreview command
+
 2024-06-20: Version 1.2.6:
  * Update wzmaplib to 1.2.6
 
