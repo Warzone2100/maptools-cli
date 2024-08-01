@@ -132,6 +132,7 @@ Both `inputmapdir` and the parent directory for the output filename (`output`) m
 | `-o`,`--output` | Output PNG filename (+ path) | TEXT:FILE(\*.png) | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
 | `-c`,`--playercolors` | Player colors | ENUM:value in {`simple`, `wz`} | DEFAULTS to `simple` |
 | `--scavcolor` | Specify the scavengers hex color | RGB hex color code | DEFAULTS to `#800000` (maroon) |
+| `--layers` | Specify layers to draw | Either `all` or a comma-separated list of any of: {`terrain`, `structures`, `oil`} | DEFAULTS to `all` |
 
 # Output Level Info Formats
 | [format] | Description | flaME | WZ < 3.4 | WZ 3.4+ | WZ 4.1+ | WZ 4.3+ |

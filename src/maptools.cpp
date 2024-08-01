@@ -193,6 +193,50 @@ bool lexical_cast(const std::string &input, MapPreviewColor &output) {
 	output = converted.value();
 	return true;
 }
+bool set_draw_options_from_strval(const std::string& input, MapPreviewColorScheme::DrawOptions& output, bool val = true)
+{
+	if (input.compare("terrain") == 0)
+	{
+		output.drawTerrain = val;
+	}
+	else if (input.compare("structures") == 0)
+	{
+		output.drawStructures = val;
+	}
+	else if (input.compare("oil") == 0)
+	{
+		output.drawOil = val;
+	}
+	else
+	{
+		return false;
+	}
+
+	return true;
+}
+bool lexical_cast(const std::string &input, MapPreviewColorScheme::DrawOptions &output)
+{
+	bool hasResetOutput = false;
+	if (input.compare("all") == 0)
+	{
+		output.set(true);
+		return true;
+	}
+	for (const auto &var : CLI::detail::split(input, ','))
+	{
+		if (var.empty()) { continue; }
+		if (!hasResetOutput)
+		{
+			output.set(false);
+			hasResetOutput = true;
+		}
+		if (!set_draw_options_from_strval(var, output, true))
+		{
+			return false;
+		}
+	}
+	return true;
+}
 } // namespace WzMap
 
 
@@ -445,7 +489,7 @@ enum class MapToolsPreviewColorProvider
 	WZPlayerColors
 };
 
-static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::LevelDetails &levelDetails)
+static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::MapPreviewColorScheme::DrawOptions& drawOptions, const WzMap::LevelDetails &levelDetails)
 {
 	WzMap::MapPreviewColorScheme previewColorScheme;
 	previewColorScheme.hqColor = {255, 0, 255, 255};
@@ -472,6 +516,7 @@ static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::stri
 		previewColorScheme.tilesetColors = WzMap::TilesetColorScheme::TilesetRockies();
 		break;
 	}
+	previewColorScheme.drawOptions = drawOptions;
 
 	auto previewResult = WzMap::generate2DMapPreview(map, previewColorScheme, WzMap::MapStatsConfiguration(levelDetails.type));
 	if (!previewResult)
@@ -491,7 +536,7 @@ static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::stri
 	return true;
 }
 
-static bool generateMapPreviewPNG_FromPackageContents(const std::string& mapPackageContentsPath, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, bool verbose, std::shared_ptr<WzMap::IOProvider> mapIO = std::shared_ptr<WzMap::IOProvider>(new WzMap::StdIOProvider()))
+static bool generateMapPreviewPNG_FromPackageContents(const std::string& mapPackageContentsPath, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::MapPreviewColorScheme::DrawOptions& drawOptions, bool verbose, std::shared_ptr<WzMap::IOProvider> mapIO = std::shared_ptr<WzMap::IOProvider>(new WzMap::StdIOProvider()))
 {
 	auto logger = std::make_shared<MapToolDebugLogger>(new MapToolDebugLogger(verbose));
 
@@ -510,11 +555,11 @@ static bool generateMapPreviewPNG_FromPackageContents(const std::string& mapPack
 		return false;
 	}
 
-	return generateMapPreviewPNG_FromMapObject(*(wzMap.get()), outputPNGPath, playerColorProvider, scavsColor, wzMapPackage->levelDetails());
+	return generateMapPreviewPNG_FromMapObject(*(wzMap.get()), outputPNGPath, playerColorProvider, scavsColor, drawOptions, wzMapPackage->levelDetails());
 }
 
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-static bool generateMapPreviewPNG_FromArchive(const std::string& mapArchive, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, bool verbose)
+static bool generateMapPreviewPNG_FromArchive(const std::string& mapArchive, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::MapPreviewColorScheme::DrawOptions& drawOptions, bool verbose)
 {
 	auto zipArchive = WzMapZipIO::openZipArchiveFS(mapArchive.c_str());
 	if (!zipArchive)
@@ -523,11 +568,11 @@ static bool generateMapPreviewPNG_FromArchive(const std::string& mapArchive, con
 		return false;
 	}
 
-	return generateMapPreviewPNG_FromPackageContents("", outputPNGPath, playerColorProvider, scavsColor, verbose, zipArchive);
+	return generateMapPreviewPNG_FromPackageContents("", outputPNGPath, playerColorProvider, scavsColor, drawOptions, verbose, zipArchive);
 }
 #endif // !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
 
-static bool generateMapPreviewPNG_FromMapDirectory(WzMap::MapType mapType, uint32_t mapMaxPlayers, const std::string& inputMapDirectory, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, bool verbose)
+static bool generateMapPreviewPNG_FromMapDirectory(WzMap::MapType mapType, uint32_t mapMaxPlayers, const std::string& inputMapDirectory, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::MapPreviewColorScheme::DrawOptions& drawOptions, bool verbose)
 {
 	auto wzMap = WzMap::Map::loadFromPath(inputMapDirectory, mapType, mapMaxPlayers, rand(), std::make_shared<MapToolDebugLogger>(new MapToolDebugLogger(verbose)));
 	if (!wzMap)
@@ -551,7 +596,7 @@ static bool generateMapPreviewPNG_FromMapDirectory(WzMap::MapType mapType, uint3
 	synthesizedLevelDetails.tileset = mapTilesetResult.value();
 	synthesizedLevelDetails.mapFolderPath = "";
 
-	return generateMapPreviewPNG_FromMapObject(*(wzMap.get()), outputPNGPath, playerColorProvider, scavsColor, synthesizedLevelDetails);
+	return generateMapPreviewPNG_FromMapObject(*(wzMap.get()), outputPNGPath, playerColorProvider, scavsColor, drawOptions, synthesizedLevelDetails);
 }
 
 namespace nlohmann {
@@ -945,11 +990,14 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 	static WzMap::MapPreviewColor preview_scavsColor = ScavsColorDefault;
 	sub_preview->add_option("--scavcolor", preview_scavsColor, "Specify the scavengers hex color")
 		->check(AsHexColorValue());
+	static WzMap::MapPreviewColorScheme::DrawOptions preview_drawOptions;
+	sub_preview->add_option("--layers", preview_drawOptions, "Specify layers to draw\n\t\teither \"all\" or a comma-separated list of any of:\n\t\t\"terrain\",\"structures\",\"oil\"")
+		->default_val("all");
 	sub_preview->callback([&]() {
 		if (inputPathIsFile(preview_inputMap))
 		{
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-			if (!generateMapPreviewPNG_FromArchive(preview_inputMap, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, verbose))
+			if (!generateMapPreviewPNG_FromArchive(preview_inputMap, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, preview_drawOptions, verbose))
 			{
 				retVal = 1;
 			}
@@ -960,7 +1008,7 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 		}
 		else
 		{
-			if (!generateMapPreviewPNG_FromPackageContents(preview_inputMap, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, verbose))
+			if (!generateMapPreviewPNG_FromPackageContents(preview_inputMap, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, preview_drawOptions, verbose))
 			{
 				retVal = 1;
 			}
@@ -1085,8 +1133,11 @@ static void addSubCommand_Map(CLI::App& app, int& retVal, bool& verbose)
 	static WzMap::MapPreviewColor preview_scavsColor = ScavsColorDefault;
 	sub_preview->add_option("--scavcolor", preview_scavsColor, "Specify the scavengers hex color")
 		->check(AsHexColorValue());
+	static WzMap::MapPreviewColorScheme::DrawOptions preview_drawOptions;
+	sub_preview->add_option("--layers", preview_drawOptions, "Specify layers to draw\n\t\teither \"all\" or a comma-separated list of any of:\n\t\t\"terrain\",\"structures\",\"oil\"")
+		->default_val("all");
 	sub_preview->callback([&]() {
-		if (!generateMapPreviewPNG_FromMapDirectory(preview_mapType, preview_mapMaxPlayers, preview_inputMapDirectory, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, verbose))
+		if (!generateMapPreviewPNG_FromMapDirectory(preview_mapType, preview_mapMaxPlayers, preview_inputMapDirectory, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, preview_drawOptions, verbose))
 		{
 			retVal = 1;
 		}
