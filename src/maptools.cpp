@@ -240,7 +240,7 @@ bool lexical_cast(const std::string &input, MapPreviewColorScheme::DrawOptions &
 } // namespace WzMap
 
 
-static bool convertMapPackage(const std::string& mapPackageContentsPath, const std::string& outputPath, WzMap::LevelFormat levelFormat, WzMap::OutputFormat outputFormat, bool copyAdditionalFiles, bool verbose, bool exportUncompressed, bool fixedLastMod, optional<std::string> override_map_name = nullopt, std::shared_ptr<WzMap::IOProvider> mapIO = std::shared_ptr<WzMap::IOProvider>(new WzMap::StdIOProvider()))
+static bool convertMapPackage(const std::string& mapPackageContentsPath, const std::string& outputPath, WzMap::LevelFormat levelFormat, WzMap::OutputFormat outputFormat, uint32_t mapSeed, bool copyAdditionalFiles, bool verbose, bool exportUncompressed, bool fixedLastMod, optional<std::string> override_map_name = nullopt, std::shared_ptr<WzMap::IOProvider> mapIO = std::shared_ptr<WzMap::IOProvider>(new WzMap::StdIOProvider()))
 {
 	auto logger = std::make_shared<MapToolDebugLogger>(new MapToolDebugLogger(verbose));
 
@@ -251,7 +251,7 @@ static bool convertMapPackage(const std::string& mapPackageContentsPath, const s
 		return false;
 	}
 
-	auto wzMap = wzMapPackage->loadMap(rand(), logger);
+	auto wzMap = wzMapPackage->loadMap(mapSeed, logger);
 	if (!wzMap)
 	{
 		// Failed to load map
@@ -324,7 +324,7 @@ static bool convertMapPackage(const std::string& mapPackageContentsPath, const s
 }
 
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-static bool convertMapPackage_FromArchive(const std::string& mapArchive, const std::string& outputPath, WzMap::LevelFormat levelFormat, WzMap::OutputFormat outputFormat, bool copyAdditionalFiles, bool verbose, bool outputUncompressed, bool fixedLastMod, optional<std::string> override_map_name)
+static bool convertMapPackage_FromArchive(const std::string& mapArchive, const std::string& outputPath, WzMap::LevelFormat levelFormat, WzMap::OutputFormat outputFormat, uint32_t mapSeed, bool copyAdditionalFiles, bool verbose, bool outputUncompressed, bool fixedLastMod, optional<std::string> override_map_name)
 {
 	auto zipArchive = WzMapZipIO::openZipArchiveFS(mapArchive.c_str());
 	if (!zipArchive)
@@ -333,13 +333,13 @@ static bool convertMapPackage_FromArchive(const std::string& mapArchive, const s
 		return false;
 	}
 
-	return convertMapPackage("", outputPath, levelFormat, outputFormat, copyAdditionalFiles, verbose, outputUncompressed, fixedLastMod, override_map_name, zipArchive);
+	return convertMapPackage("", outputPath, levelFormat, outputFormat, mapSeed, copyAdditionalFiles, verbose, outputUncompressed, fixedLastMod, override_map_name, zipArchive);
 }
 #endif // !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
 
-static bool convertMap(WzMap::MapType mapType, uint32_t mapMaxPlayers, const std::string& inputMapDirectory, const std::string& outputMapDirectory, WzMap::OutputFormat outputFormat, bool verbose)
+static bool convertMap(WzMap::MapType mapType, uint32_t mapMaxPlayers, const std::string& inputMapDirectory, const std::string& outputMapDirectory, WzMap::OutputFormat outputFormat, uint32_t mapSeed, bool verbose)
 {
-	auto wzMap = WzMap::Map::loadFromPath(inputMapDirectory, mapType, mapMaxPlayers, rand(), std::make_shared<MapToolDebugLogger>(new MapToolDebugLogger(verbose)));
+	auto wzMap = WzMap::Map::loadFromPath(inputMapDirectory, mapType, mapMaxPlayers, mapSeed, std::make_shared<MapToolDebugLogger>(new MapToolDebugLogger(verbose)));
 	if (!wzMap)
 	{
 		// Failed to load map
@@ -536,7 +536,7 @@ static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::stri
 	return true;
 }
 
-static bool generateMapPreviewPNG_FromPackageContents(const std::string& mapPackageContentsPath, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::MapPreviewColorScheme::DrawOptions& drawOptions, bool verbose, std::shared_ptr<WzMap::IOProvider> mapIO = std::shared_ptr<WzMap::IOProvider>(new WzMap::StdIOProvider()))
+static bool generateMapPreviewPNG_FromPackageContents(const std::string& mapPackageContentsPath, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::MapPreviewColorScheme::DrawOptions& drawOptions, uint32_t mapSeed, bool verbose, std::shared_ptr<WzMap::IOProvider> mapIO = std::shared_ptr<WzMap::IOProvider>(new WzMap::StdIOProvider()))
 {
 	auto logger = std::make_shared<MapToolDebugLogger>(new MapToolDebugLogger(verbose));
 
@@ -547,7 +547,7 @@ static bool generateMapPreviewPNG_FromPackageContents(const std::string& mapPack
 		return false;
 	}
 
-	auto wzMap = wzMapPackage->loadMap(rand(), logger);
+	auto wzMap = wzMapPackage->loadMap(mapSeed, logger);
 	if (!wzMap)
 	{
 		// Failed to load map
@@ -559,7 +559,7 @@ static bool generateMapPreviewPNG_FromPackageContents(const std::string& mapPack
 }
 
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-static bool generateMapPreviewPNG_FromArchive(const std::string& mapArchive, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::MapPreviewColorScheme::DrawOptions& drawOptions, bool verbose)
+static bool generateMapPreviewPNG_FromArchive(const std::string& mapArchive, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::MapPreviewColorScheme::DrawOptions& drawOptions, uint32_t mapSeed, bool verbose)
 {
 	auto zipArchive = WzMapZipIO::openZipArchiveFS(mapArchive.c_str());
 	if (!zipArchive)
@@ -568,13 +568,13 @@ static bool generateMapPreviewPNG_FromArchive(const std::string& mapArchive, con
 		return false;
 	}
 
-	return generateMapPreviewPNG_FromPackageContents("", outputPNGPath, playerColorProvider, scavsColor, drawOptions, verbose, zipArchive);
+	return generateMapPreviewPNG_FromPackageContents("", outputPNGPath, playerColorProvider, scavsColor, drawOptions, mapSeed, verbose, zipArchive);
 }
 #endif // !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
 
-static bool generateMapPreviewPNG_FromMapDirectory(WzMap::MapType mapType, uint32_t mapMaxPlayers, const std::string& inputMapDirectory, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::MapPreviewColorScheme::DrawOptions& drawOptions, bool verbose)
+static bool generateMapPreviewPNG_FromMapDirectory(WzMap::MapType mapType, uint32_t mapMaxPlayers, const std::string& inputMapDirectory, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::MapPreviewColorScheme::DrawOptions& drawOptions, uint32_t mapSeed, bool verbose)
 {
-	auto wzMap = WzMap::Map::loadFromPath(inputMapDirectory, mapType, mapMaxPlayers, rand(), std::make_shared<MapToolDebugLogger>(new MapToolDebugLogger(verbose)));
+	auto wzMap = WzMap::Map::loadFromPath(inputMapDirectory, mapType, mapMaxPlayers, mapSeed, std::make_shared<MapToolDebugLogger>(new MapToolDebugLogger(verbose)));
 	if (!wzMap)
 	{
 		// Failed to load map
@@ -803,7 +803,7 @@ static nlohmann::ordered_json generateMapInfoJSON_FromPackage(WzMap::MapPackage&
 	return output;
 }
 
-static optional<nlohmann::ordered_json> generateMapInfoJSON_FromPackageContents(const std::string& mapPackageContentsPath, std::shared_ptr<MapToolDebugLogger> logger, std::shared_ptr<WzMap::IOProvider> mapIO = std::shared_ptr<WzMap::IOProvider>(new WzMap::StdIOProvider()))
+static optional<nlohmann::ordered_json> generateMapInfoJSON_FromPackageContents(const std::string& mapPackageContentsPath, uint32_t mapSeed, std::shared_ptr<MapToolDebugLogger> logger, std::shared_ptr<WzMap::IOProvider> mapIO = std::shared_ptr<WzMap::IOProvider>(new WzMap::StdIOProvider()))
 {
 	auto wzMapPackage = WzMap::MapPackage::loadPackage(mapPackageContentsPath, logger, mapIO);
 	if (!wzMapPackage)
@@ -812,7 +812,7 @@ static optional<nlohmann::ordered_json> generateMapInfoJSON_FromPackageContents(
 		return nullopt;
 	}
 
-	auto mapStatsResult = wzMapPackage->calculateMapStats(0);
+	auto mapStatsResult = wzMapPackage->calculateMapStats(mapSeed);
 	if (!mapStatsResult.has_value())
 	{
 		std::cerr << "Failed to calculate map info / stats from: " << mapPackageContentsPath << std::endl;
@@ -823,7 +823,7 @@ static optional<nlohmann::ordered_json> generateMapInfoJSON_FromPackageContents(
 }
 
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-static optional<nlohmann::ordered_json> generateMapInfoJSON_FromArchive(const std::string& mapArchive, std::shared_ptr<MapToolDebugLogger> logger)
+static optional<nlohmann::ordered_json> generateMapInfoJSON_FromArchive(const std::string& mapArchive, uint32_t mapSeed, std::shared_ptr<MapToolDebugLogger> logger)
 {
 	auto zipArchive = WzMapZipIO::openZipArchiveFS(mapArchive.c_str());
 	if (!zipArchive)
@@ -832,7 +832,7 @@ static optional<nlohmann::ordered_json> generateMapInfoJSON_FromArchive(const st
 		return nullopt;
 	}
 
-	return generateMapInfoJSON_FromPackageContents("", logger, zipArchive);
+	return generateMapInfoJSON_FromPackageContents("", mapSeed, logger, zipArchive);
 }
 #endif // !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
 
@@ -918,6 +918,8 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 		return CLI::ExistingFile(path).empty();
 	};
 
+	static uint32_t package_mapSeed = rand();
+
 	// [CONVERTING MAP PACKAGE]
 	CLI::App* sub_convert = sub_package->add_subcommand("convert", "Convert a map from one format to another");
 	sub_convert->fallthrough();
@@ -945,6 +947,7 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 	sub_convert->add_flag("--output-uncompressed", sub_convert_uncompressed, "Output uncompressed to a folder (not in a .wz file)");
 	static std::string override_map_name;
 	sub_convert->add_option("--set-name", override_map_name, "Set / override the map name when converting");
+	sub_convert->add_option("--map-seed", package_mapSeed, "Specify the script-generated map seed");
 	sub_convert->callback([&]() {
 		optional<std::string> override_map_name_opt = nullopt;
 		if (!override_map_name.empty())
@@ -954,7 +957,7 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 		if (inputPathIsFile(inputMapPackage))
 		{
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-			if (!convertMapPackage_FromArchive(inputMapPackage, outputPath, outputLevelFormat, outputMapFormat, sub_convert_copyadditionalfiles, verbose, sub_convert_uncompressed, sub_convert_fixed_last_mod, override_map_name_opt))
+			if (!convertMapPackage_FromArchive(inputMapPackage, outputPath, outputLevelFormat, outputMapFormat, package_mapSeed, sub_convert_copyadditionalfiles, verbose, sub_convert_uncompressed, sub_convert_fixed_last_mod, override_map_name_opt))
 			{
 				retVal = 1;
 			}
@@ -965,7 +968,7 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 		}
 		else
 		{
-			if (!convertMapPackage(inputMapPackage, outputPath, outputLevelFormat, outputMapFormat, sub_convert_copyadditionalfiles, verbose, sub_convert_uncompressed, sub_convert_fixed_last_mod, override_map_name_opt))
+			if (!convertMapPackage(inputMapPackage, outputPath, outputLevelFormat, outputMapFormat, package_mapSeed, sub_convert_copyadditionalfiles, verbose, sub_convert_uncompressed, sub_convert_fixed_last_mod, override_map_name_opt))
 			{
 				retVal = 1;
 			}
@@ -993,11 +996,12 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 	static WzMap::MapPreviewColorScheme::DrawOptions preview_drawOptions;
 	sub_preview->add_option("--layers", preview_drawOptions, "Specify layers to draw\n\t\teither \"all\" or a comma-separated list of any of:\n\t\t\"terrain\",\"structures\",\"oil\"")
 		->default_val("all");
+	sub_preview->add_option("--map-seed", package_mapSeed, "Specify the script-generated map seed");
 	sub_preview->callback([&]() {
 		if (inputPathIsFile(preview_inputMap))
 		{
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-			if (!generateMapPreviewPNG_FromArchive(preview_inputMap, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, preview_drawOptions, verbose))
+			if (!generateMapPreviewPNG_FromArchive(preview_inputMap, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, preview_drawOptions, package_mapSeed, verbose))
 			{
 				retVal = 1;
 			}
@@ -1008,7 +1012,7 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 		}
 		else
 		{
-			if (!generateMapPreviewPNG_FromPackageContents(preview_inputMap, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, preview_drawOptions, verbose))
+			if (!generateMapPreviewPNG_FromPackageContents(preview_inputMap, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, preview_drawOptions, package_mapSeed, verbose))
 			{
 				retVal = 1;
 			}
@@ -1025,6 +1029,7 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 	static std::string info_outputFilename;
 	sub_info->add_option("-o,--output", info_outputFilename, "Output filename (+ path)")
 		->check(FileExtensionValidator(".json"));
+	sub_info->add_option("--map-seed", package_mapSeed, "Specify the script-generated map seed");
 	sub_info->callback([&]() {
 		optional<nlohmann::ordered_json> mapInfoJSON;
 		std::shared_ptr<MapToolDebugLogger> logger;
@@ -1035,7 +1040,7 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 		if (inputPathIsFile(info_inputMap))
 		{
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-			mapInfoJSON = generateMapInfoJSON_FromArchive(info_inputMap, logger);
+			mapInfoJSON = generateMapInfoJSON_FromArchive(info_inputMap, package_mapSeed, logger);
 #else
 			std::cerr << "ERROR: maptools was compiled without support for .wz archives, and cannot open: " << info_inputMap << std::endl;
 			retVal = 1;
@@ -1043,7 +1048,7 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 		}
 		else
 		{
-			mapInfoJSON = generateMapInfoJSON_FromPackageContents(info_inputMap, logger);
+			mapInfoJSON = generateMapInfoJSON_FromPackageContents(info_inputMap, package_mapSeed, logger);
 		}
 
 		if (!mapInfoJSON.has_value())
@@ -1077,6 +1082,8 @@ static void addSubCommand_Map(CLI::App& app, int& retVal, bool& verbose)
 	CLI::App* sub_map = app.add_subcommand("map", "Manipulating a map folder");
 	sub_map->fallthrough();
 
+	static uint32_t map_mapSeed = rand();
+
 	// [CONVERTING MAP FORMAT]
 	CLI::App* sub_convert = sub_map->add_subcommand("convert", "Convert a map from one format to another");
 	sub_convert->fallthrough();
@@ -1100,8 +1107,9 @@ static void addSubCommand_Map(CLI::App& app, int& retVal, bool& verbose)
 	sub_convert->add_option("-o,--output,outputmapdir", outputMapDirectory, "Output map directory")
 		->required()
 		->check(CLI::ExistingDirectory);
+	sub_convert->add_option("--map-seed", map_mapSeed, "Specify the script-generated map seed");
 	sub_convert->callback([&]() {
-		if (!convertMap(mapType, mapMaxPlayers, inputMapDirectory, outputMapDirectory, outputFormat, verbose))
+		if (!convertMap(mapType, mapMaxPlayers, inputMapDirectory, outputMapDirectory, outputFormat, map_mapSeed, verbose))
 		{
 			retVal = 1;
 		}
@@ -1136,8 +1144,9 @@ static void addSubCommand_Map(CLI::App& app, int& retVal, bool& verbose)
 	static WzMap::MapPreviewColorScheme::DrawOptions preview_drawOptions;
 	sub_preview->add_option("--layers", preview_drawOptions, "Specify layers to draw\n\t\teither \"all\" or a comma-separated list of any of:\n\t\t\"terrain\",\"structures\",\"oil\"")
 		->default_val("all");
+	sub_preview->add_option("--map-seed", map_mapSeed, "Specify the script-generated map seed");
 	sub_preview->callback([&]() {
-		if (!generateMapPreviewPNG_FromMapDirectory(preview_mapType, preview_mapMaxPlayers, preview_inputMapDirectory, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, preview_drawOptions, verbose))
+		if (!generateMapPreviewPNG_FromMapDirectory(preview_mapType, preview_mapMaxPlayers, preview_inputMapDirectory, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, preview_drawOptions, map_mapSeed, verbose))
 		{
 			retVal = 1;
 		}
