@@ -812,7 +812,7 @@ static optional<nlohmann::ordered_json> generateMapInfoJSON_FromPackageContents(
 		return nullopt;
 	}
 
-	auto mapStatsResult = wzMapPackage->calculateMapStats();
+	auto mapStatsResult = wzMapPackage->calculateMapStats(0);
 	if (!mapStatsResult.has_value())
 	{
 		std::cerr << "Failed to calculate map info / stats from: " << mapPackageContentsPath << std::endl;

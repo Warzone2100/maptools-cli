@@ -4,7 +4,9 @@ if (TARGET wzmaplib)
 	message(DEBUG "wzmaplib is already available - no need to use FetchContent")
 else()
 	message(STATUS "maptools: wzmaplib must be fetched")
-	set(_cmake_min_ver_supported 3.11) # CMake 3.11 is the minimum version for FetchContent
+	# CMake 3.11 is the minimum version for FetchContent
+	# CMake 3.14 is the minimum version for FetchContent_MakeAvailable, CMake 3.18 is required for "SOURCE_SUBDIR" to work with it, and CMake 3.28 is required for EXCLUDE_FROM_ALL to work with it
+	set(_cmake_min_ver_supported 3.11)
 endif()
 
 cmake_minimum_required(VERSION ${_cmake_min_ver_supported}...3.24)
@@ -47,16 +49,23 @@ if(NOT TARGET wzmaplib)
 	FetchContent_Declare(
 		warzone2100_repo
 		GIT_REPOSITORY https://github.com/Warzone2100/warzone2100.git
-		GIT_TAG        85310b635635955e453901c308c343667b6f0a35
+		GIT_TAG        22ce2b173997f3d72db88e12d602efc4a78cddfe
 		GIT_PROGRESS   TRUE
 		USES_TERMINAL_DOWNLOAD	TRUE
+		SOURCE_SUBDIR  "lib/wzmaplib"
+		EXCLUDE_FROM_ALL
 	)
-	FetchContent_GetProperties(warzone2100_repo)
-	if(NOT warzone2100_repo_POPULATED)
-		FetchContent_Populate(warzone2100_repo)
+	if(NOT CMAKE_VERSION VERSION_LESS 3.28)
+		FetchContent_MakeAvailable(warzone2100_repo)
+		message(STATUS "maptools: Added wzmaplib")
+	else()
+		FetchContent_GetProperties(warzone2100_repo)
+		if(NOT warzone2100_repo_POPULATED)
+			FetchContent_Populate(warzone2100_repo)
+		endif()
+		message(STATUS "maptools: Adding wzmaplib")
+		add_subdirectory("${warzone2100_repo_SOURCE_DIR}/lib/wzmaplib" "lib/wzmaplib" EXCLUDE_FROM_ALL)
 	endif()
-	message(STATUS "maptools: Adding wzmaplib")
-	add_subdirectory("${warzone2100_repo_SOURCE_DIR}/lib/wzmaplib" "lib/wzmaplib" EXCLUDE_FROM_ALL)
 endif()
 
 find_package(PNG 1.2 REQUIRED)
