@@ -489,7 +489,7 @@ enum class MapToolsPreviewColorProvider
 	WZPlayerColors
 };
 
-static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::MapPreviewColorScheme::DrawOptions& drawOptions, const WzMap::LevelDetails &levelDetails)
+static std::unique_ptr<WzMap::MapPreviewImage> generateMapPreview_FromMapObject_Impl(WzMap::Map& map, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::MapPreviewColorScheme::DrawOptions& drawOptions, const WzMap::LevelDetails &levelDetails)
 {
 	WzMap::MapPreviewColorScheme previewColorScheme;
 	previewColorScheme.hqColor = {255, 0, 255, 255};
@@ -518,12 +518,18 @@ static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::stri
 	}
 	previewColorScheme.drawOptions = drawOptions;
 
-	auto previewResult = WzMap::generate2DMapPreview(map, previewColorScheme, WzMap::MapStatsConfiguration(levelDetails.type));
+	return WzMap::generate2DMapPreview(map, previewColorScheme, WzMap::MapStatsConfiguration(levelDetails.type));
+}
+
+static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::MapPreviewColorScheme::DrawOptions& drawOptions, const WzMap::LevelDetails &levelDetails)
+{
+	auto previewResult = generateMapPreview_FromMapObject_Impl(map, playerColorProvider, scavsColor, drawOptions, levelDetails);
 	if (!previewResult)
 	{
 		std::cerr << "Failed to generate map preview" << std::endl;
 		return false;
 	}
+
 	if (!savePng(outputPNGPath.c_str(), previewResult->imageData.data(), static_cast<int>(previewResult->width), static_cast<int>(previewResult->height)))
 	{
 		std::cerr << "Failed to save preview PNG" << std::endl;
@@ -898,9 +904,77 @@ class AsHexColorValue : public CLI::Validator {
 	}
 };
 
-static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
+class WzMapToolsAppInstance : public CLI::App
 {
-	CLI::App* sub_package = app.add_subcommand("package", "Manipulating a map package");
+protected:
+	explicit WzMapToolsAppInstance()
+		: CLI::App("WZ2100 Map Tools")
+	{ }
+public:
+	static std::shared_ptr<WzMapToolsAppInstance> makeWzMapToolsAppInstance()
+	{
+		class make_shared_enabler: public WzMapToolsAppInstance {};
+		auto app = std::make_shared<make_shared_enabler>();
+
+	#if defined(MAPTOOLS_CLI_VERSION_MAJOR) && defined(MAPTOOLS_CLI_VERSION_MINOR) && defined(MAPTOOLS_CLI_VERSION_REV)
+		app->set_version_flag("--version", []() -> std::string {
+			return generateMapToolsVersionInfo();
+		});
+	#else
+		#error Missing maptools version defines
+	#endif
+
+		// Initialize rand()
+		srand((unsigned int)time(NULL));
+		(void)rand();
+		app->mapSeed = rand();
+
+		std::stringstream footerInfo;
+		footerInfo << "License: GPL-2.0-or-later" << std::endl;
+		footerInfo << "Source: https://github.com/Warzone2100/maptools-cli" << std::endl;
+		app->footer(footerInfo.str());
+
+		app->add_flag("-v,--verbose", app->verbose, "Verbose output");
+
+		WzMapToolsAppInstance::addSubCommand_Package(app);
+		WzMapToolsAppInstance::addSubCommand_Map(app);
+
+		return app;
+	}
+	int getRetVal() const { return retVal; }
+private:
+	static void addSubCommand_Package(const std::shared_ptr<WzMapToolsAppInstance>& app);
+	static void addSubCommand_Map(const std::shared_ptr<WzMapToolsAppInstance>& app);
+private:
+	int retVal = 0;
+	bool verbose = false;
+
+	std::string inputPath;
+	std::string outputPath;
+	uint32_t mapSeed;
+	WzMap::OutputFormat outputMapFormat = WzMap::LatestOutputFormat;
+
+	// package variables
+	WzMap::LevelFormat outputLevelFormat = WzMap::LevelFormat::JSON;
+	bool sub_convert_copyadditionalfiles = false;
+	bool sub_convert_fixed_last_mod = false;
+	bool sub_convert_uncompressed = false;
+	std::string override_map_name;
+
+	MapToolsPreviewColorProvider preview_PlayerColorProvider = MapToolsPreviewColorProvider::Simple;
+	WzMap::MapPreviewColor preview_scavsColor = ScavsColorDefault;
+	WzMap::MapPreviewColorScheme::DrawOptions preview_drawOptions;
+
+	// map commands variables
+	WzMap::MapType mapType = WzMap::MapType::SKIRMISH;
+	uint32_t mapMaxPlayers = 0;
+};
+
+void WzMapToolsAppInstance::addSubCommand_Package(const std::shared_ptr<WzMapToolsAppInstance>& app)
+{
+	std::weak_ptr<WzMapToolsAppInstance> weakAppInstance = std::weak_ptr<WzMapToolsAppInstance>(app);
+
+	CLI::App* sub_package = app->add_subcommand("package", "Manipulating a map package");
 	sub_package->fallthrough();
 
 	std::string inputOptionDescription;
@@ -918,59 +992,55 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 		return CLI::ExistingFile(path).empty();
 	};
 
-	static uint32_t package_mapSeed = rand();
-
 	// [CONVERTING MAP PACKAGE]
 	CLI::App* sub_convert = sub_package->add_subcommand("convert", "Convert a map from one format to another");
 	sub_convert->fallthrough();
-	static WzMap::LevelFormat outputLevelFormat = WzMap::LevelFormat::JSON;
-	sub_convert->add_option("-l,--levelformat", outputLevelFormat, "Output level info format")
+	sub_convert->add_option("-l,--levelformat", app->outputLevelFormat, "Output level info format")
 		->transform(CLI::CheckedTransformer(levelformat_map, CLI::ignore_case).description("value in {\n\t\tlev -> LEV (flaME-compatible / old),\n\t\tjson -> JSON level file (WZ 4.3+),\n\t\tlatest -> " + CLI::detail::to_string(WzMap::LatestLevelFormat) + "}"))
 		->default_val("latest");
-	static WzMap::OutputFormat outputMapFormat = WzMap::LatestOutputFormat;
-	sub_convert->add_option("-f,--format", outputMapFormat, "Output map format")
+	sub_convert->add_option("-f,--format", app->outputMapFormat, "Output map format")
 		->required()
 		->transform(CLI::CheckedTransformer(outputformat_map, CLI::ignore_case).description("value in {\n\t\tbjo -> Binary .BJO (flaME-compatible / old),\n\t\tjson -> JSONv1 (WZ 3.4+),\n\t\tjsonv2 -> JSONv2 (WZ 4.1+),\n\t\tlatest -> " + CLI::detail::to_string(WzMap::LatestOutputFormat) + "}"));
-	static std::string inputMapPackage;
-	sub_convert->add_option("-i,--input,input", inputMapPackage, inputOptionDescription)
+	sub_convert->add_option("-i,--input,input", app->inputPath, inputOptionDescription)
 		->required()
 		->check(CLI::ExistingPath);
-	static std::string outputPath;
-	sub_convert->add_option("-o,--output,output", outputPath, "Output path")
+	sub_convert->add_option("-o,--output,output", app->outputPath, "Output path")
 		->required()
 		->check(CLI::NonexistentPath);
-	static bool sub_convert_copyadditionalfiles = false;
-	sub_convert->add_flag("--preserve-mods", sub_convert_copyadditionalfiles, "Copy other files from the original map package (i.e. the extra files / modifications in a map-mod)");
-	static bool sub_convert_fixed_last_mod = false;
-	sub_convert->add_flag("--fixed-lastmod", sub_convert_fixed_last_mod, "Fixed last modification date (if outputting to a .wz archive)");
-	static bool sub_convert_uncompressed = false;
-	sub_convert->add_flag("--output-uncompressed", sub_convert_uncompressed, "Output uncompressed to a folder (not in a .wz file)");
-	static std::string override_map_name;
-	sub_convert->add_option("--set-name", override_map_name, "Set / override the map name when converting");
-	sub_convert->add_option("--map-seed", package_mapSeed, "Specify the script-generated map seed");
-	sub_convert->callback([&]() {
-		optional<std::string> override_map_name_opt = nullopt;
-		if (!override_map_name.empty())
+	sub_convert->add_flag("--preserve-mods", app->sub_convert_copyadditionalfiles, "Copy other files from the original map package (i.e. the extra files / modifications in a map-mod)");
+	sub_convert->add_flag("--fixed-lastmod", app->sub_convert_fixed_last_mod, "Fixed last modification date (if outputting to a .wz archive)");
+	sub_convert->add_flag("--output-uncompressed", app->sub_convert_uncompressed, "Output uncompressed to a folder (not in a .wz file)");
+	sub_convert->add_option("--set-name", app->override_map_name, "Set / override the map name when converting");
+	sub_convert->add_option("--map-seed", app->mapSeed, "Specify the script-generated map seed");
+	sub_convert->callback([weakAppInstance, inputPathIsFile]() {
+		auto app = weakAppInstance.lock();
+		if (!app)
 		{
-			override_map_name_opt = override_map_name;
+			std::cerr << "ERROR: Invalid instance" << std::endl;
+			return;
 		}
-		if (inputPathIsFile(inputMapPackage))
+		optional<std::string> override_map_name_opt = nullopt;
+		if (!app->override_map_name.empty())
+		{
+			override_map_name_opt = app->override_map_name;
+		}
+		if (inputPathIsFile(app->inputPath))
 		{
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-			if (!convertMapPackage_FromArchive(inputMapPackage, outputPath, outputLevelFormat, outputMapFormat, package_mapSeed, sub_convert_copyadditionalfiles, verbose, sub_convert_uncompressed, sub_convert_fixed_last_mod, override_map_name_opt))
+			if (!convertMapPackage_FromArchive(app->inputPath, app->outputPath, app->outputLevelFormat, app->outputMapFormat, app->mapSeed, app->sub_convert_copyadditionalfiles, app->verbose, app->sub_convert_uncompressed, app->sub_convert_fixed_last_mod, override_map_name_opt))
 			{
-				retVal = 1;
+				app->retVal = 1;
 			}
 #else
-			std::cerr << "ERROR: maptools was compiled without support for .wz archives, and cannot open: " << inputMapPackage << std::endl;
+			std::cerr << "ERROR: maptools was compiled without support for .wz archives, and cannot open: " << app->inputPath << std::endl;
 			retVal = 1;
 #endif
 		}
 		else
 		{
-			if (!convertMapPackage(inputMapPackage, outputPath, outputLevelFormat, outputMapFormat, package_mapSeed, sub_convert_copyadditionalfiles, verbose, sub_convert_uncompressed, sub_convert_fixed_last_mod, override_map_name_opt))
+			if (!convertMapPackage(app->inputPath, app->outputPath, app->outputLevelFormat, app->outputMapFormat, app->mapSeed, app->sub_convert_copyadditionalfiles, app->verbose, app->sub_convert_uncompressed, app->sub_convert_fixed_last_mod, override_map_name_opt))
 			{
-				retVal = 1;
+				app->retVal = 1;
 			}
 		}
 	});
@@ -978,43 +1048,44 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 	// [GENERATING MAP PREVIEW PNG]
 	CLI::App* sub_preview = sub_package->add_subcommand("genpreview", "Generate a map preview PNG");
 	sub_preview->fallthrough();
-	static std::string preview_inputMap;
-	sub_preview->add_option("-i,--input,input", preview_inputMap, inputOptionDescription)
+	sub_preview->add_option("-i,--input,input", app->inputPath, inputOptionDescription)
 		->required()
 		->check(CLI::ExistingPath);
-	static std::string preview_outputPNGFilename;
-	sub_preview->add_option("-o,--output,output", preview_outputPNGFilename, "Output PNG filename (+ path)")
+	sub_preview->add_option("-o,--output,output", app->outputPath, "Output PNG filename (+ path)")
 		->required()
 		->check(FileExtensionValidator(".png"));
-	static MapToolsPreviewColorProvider preview_PlayerColorProvider = MapToolsPreviewColorProvider::Simple;
-	sub_preview->add_option("-c,--playercolors", preview_PlayerColorProvider, "Player colors")
+	sub_preview->add_option("-c,--playercolors", app->preview_PlayerColorProvider, "Player colors")
 		->transform(CLI::CheckedTransformer(previewcolors_map, CLI::ignore_case).description("value in {\n\t\tsimple -> use one color for scavs, one color for players,\n\t\twz -> use WZ colors for players (distinct)\n\t}"))
 		->default_val("simple");
-	static WzMap::MapPreviewColor preview_scavsColor = ScavsColorDefault;
-	sub_preview->add_option("--scavcolor", preview_scavsColor, "Specify the scavengers hex color")
+	sub_preview->add_option("--scavcolor", app->preview_scavsColor, "Specify the scavengers hex color")
 		->check(AsHexColorValue());
-	static WzMap::MapPreviewColorScheme::DrawOptions preview_drawOptions;
-	sub_preview->add_option("--layers", preview_drawOptions, "Specify layers to draw\n\t\teither \"all\" or a comma-separated list of any of:\n\t\t\"terrain\",\"structures\",\"oil\"")
+	sub_preview->add_option("--layers", app->preview_drawOptions, "Specify layers to draw\n\t\teither \"all\" or a comma-separated list of any of:\n\t\t\"terrain\",\"structures\",\"oil\"")
 		->default_val("all");
-	sub_preview->add_option("--map-seed", package_mapSeed, "Specify the script-generated map seed");
-	sub_preview->callback([&]() {
-		if (inputPathIsFile(preview_inputMap))
+	sub_preview->add_option("--map-seed", app->mapSeed, "Specify the script-generated map seed");
+	sub_preview->callback([weakAppInstance, inputPathIsFile]() {
+		auto app = weakAppInstance.lock();
+		if (!app)
+		{
+			std::cerr << "ERROR: Invalid instance" << std::endl;
+			return;
+		}
+		if (inputPathIsFile(app->inputPath))
 		{
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-			if (!generateMapPreviewPNG_FromArchive(preview_inputMap, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, preview_drawOptions, package_mapSeed, verbose))
+			if (!generateMapPreviewPNG_FromArchive(app->inputPath, app->outputPath, app->preview_PlayerColorProvider, app->preview_scavsColor, app->preview_drawOptions, app->mapSeed, app->verbose))
 			{
-				retVal = 1;
+				app->retVal = 1;
 			}
 #else
-			std::cerr << "ERROR: maptools was compiled without support for .wz archives, and cannot open: " << preview_inputMap << std::endl;
-			retVal = 1;
+			std::cerr << "ERROR: maptools was compiled without support for .wz archives, and cannot open: " << app->inputPath << std::endl;
+			app->retVal = 1;
 #endif
 		}
 		else
 		{
-			if (!generateMapPreviewPNG_FromPackageContents(preview_inputMap, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, preview_drawOptions, package_mapSeed, verbose))
+			if (!generateMapPreviewPNG_FromPackageContents(app->inputPath, app->outputPath, app->preview_PlayerColorProvider, app->preview_scavsColor, app->preview_drawOptions, app->mapSeed, app->verbose))
 			{
-				retVal = 1;
+				app->retVal = 1;
 			}
 		}
 	});
@@ -1022,53 +1093,57 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 	// [EXTRACTING INFORMATION FROM A MAP PACKAGE]
 	CLI::App* sub_info = sub_package->add_subcommand("info", "Extract info / stats from a map package");
 	sub_info->fallthrough();
-	static std::string info_inputMap;
-	sub_info->add_option("-i,--input,input", info_inputMap, inputOptionDescription)
+	sub_info->add_option("-i,--input,input", app->inputPath, inputOptionDescription)
 		->required()
 		->check(CLI::ExistingPath);
-	static std::string info_outputFilename;
-	sub_info->add_option("-o,--output", info_outputFilename, "Output filename (+ path)")
+	sub_info->add_option("-o,--output", app->outputPath, "Output filename (+ path)")
 		->check(FileExtensionValidator(".json"));
-	sub_info->add_option("--map-seed", package_mapSeed, "Specify the script-generated map seed");
-	sub_info->callback([&]() {
+	sub_info->add_option("--map-seed", app->mapSeed, "Specify the script-generated map seed");
+	sub_info->callback([weakAppInstance, inputPathIsFile]() {
+		auto app = weakAppInstance.lock();
+		if (!app)
+		{
+			std::cerr << "ERROR: Invalid instance" << std::endl;
+			return;
+		}
 		optional<nlohmann::ordered_json> mapInfoJSON;
 		std::shared_ptr<MapToolDebugLogger> logger;
-		if (!info_outputFilename.empty())
+		if (!app->outputPath.empty())
 		{
-			logger = std::make_shared<MapToolDebugLogger>(new MapToolDebugLogger(verbose));
+			logger = std::make_shared<MapToolDebugLogger>(new MapToolDebugLogger(app->verbose));
 		}
-		if (inputPathIsFile(info_inputMap))
+		if (inputPathIsFile(app->inputPath))
 		{
 #if !defined(WZ_MAPTOOLS_DISABLE_ARCHIVE_SUPPORT)
-			mapInfoJSON = generateMapInfoJSON_FromArchive(info_inputMap, package_mapSeed, logger);
+			mapInfoJSON = generateMapInfoJSON_FromArchive(app->inputPath, app->mapSeed, logger);
 #else
-			std::cerr << "ERROR: maptools was compiled without support for .wz archives, and cannot open: " << info_inputMap << std::endl;
-			retVal = 1;
+			std::cerr << "ERROR: maptools was compiled without support for .wz archives, and cannot open: " << app->inputPath << std::endl;
+			app->retVal = 1;
 #endif
 		}
 		else
 		{
-			mapInfoJSON = generateMapInfoJSON_FromPackageContents(info_inputMap, package_mapSeed, logger);
+			mapInfoJSON = generateMapInfoJSON_FromPackageContents(app->inputPath, app->mapSeed, logger);
 		}
 
 		if (!mapInfoJSON.has_value())
 		{
-			retVal = 1;
+			app->retVal = 1;
 			return;
 		}
 
 		std::string jsonStr = mapInfoJSON.value().dump(4, ' ', false, nlohmann::ordered_json::error_handler_t::ignore);
 
-		if (!info_outputFilename.empty())
+		if (!app->outputPath.empty())
 		{
 			WzMap::StdIOProvider stdOutput;
-			if (!stdOutput.writeFullFile(info_outputFilename, jsonStr.c_str(), static_cast<uint32_t>(jsonStr.size())))
+			if (!stdOutput.writeFullFile(app->outputPath, jsonStr.c_str(), static_cast<uint32_t>(jsonStr.size())))
 			{
-				std::cerr << "Failed to output JSON to: " << info_outputFilename << std::endl;
-				retVal = 1;
+				std::cerr << "Failed to output JSON to: " << app->outputPath << std::endl;
+				app->retVal = 1;
 				return;
 			}
-			std::cout << "Wrote output JSON to: " << info_outputFilename << std::endl;
+			std::cout << "Wrote output JSON to: " << app->outputPath << std::endl;
 		}
 		else
 		{
@@ -1077,110 +1152,85 @@ static void addSubCommand_Package(CLI::App& app, int& retVal, bool& verbose)
 	});
 }
 
-static void addSubCommand_Map(CLI::App& app, int& retVal, bool& verbose)
+void WzMapToolsAppInstance::addSubCommand_Map(const std::shared_ptr<WzMapToolsAppInstance>& app)
 {
-	CLI::App* sub_map = app.add_subcommand("map", "Manipulating a map folder");
-	sub_map->fallthrough();
+	std::weak_ptr<WzMapToolsAppInstance> weakAppInstance = std::weak_ptr<WzMapToolsAppInstance>(app);
 
-	static uint32_t map_mapSeed = rand();
+	CLI::App* sub_map = app->add_subcommand("map", "Manipulating a map folder");
+	sub_map->fallthrough();
 
 	// [CONVERTING MAP FORMAT]
 	CLI::App* sub_convert = sub_map->add_subcommand("convert", "Convert a map from one format to another");
 	sub_convert->fallthrough();
-	static WzMap::MapType mapType = WzMap::MapType::SKIRMISH;
-	sub_convert->add_option("-t,--maptype", mapType, "Map type")
+	sub_convert->add_option("-t,--maptype", app->mapType, "Map type")
 		->transform(CLI::CheckedTransformer(maptype_map, CLI::ignore_case))
 		->default_val(WzMap::MapType::SKIRMISH);
-	static uint32_t mapMaxPlayers = 0;
-	sub_convert->add_option("-p,--maxplayers", mapMaxPlayers, "Map max players")
+	sub_convert->add_option("-p,--maxplayers", app->mapMaxPlayers, "Map max players")
 		->required()
 		->check(CLI::Range(1, 10));
-	static WzMap::OutputFormat outputFormat = WzMap::LatestOutputFormat;
-	sub_convert->add_option("-f,--format", outputFormat, "Output map format")
+	sub_convert->add_option("-f,--format", app->outputMapFormat, "Output map format")
 		->required()
 		->transform(CLI::CheckedTransformer(outputformat_map, CLI::ignore_case).description("value in {\n\t\tbjo -> Binary .BJO (flaME-compatible / old),\n\t\tjson -> JSONv1 (WZ 3.4+),\n\t\tjsonv2 -> JSONv2 (WZ 4.1+),\n\t\tlatest -> " + CLI::detail::to_string(WzMap::LatestOutputFormat) + "}"));
-	static std::string inputMapDirectory;
-	sub_convert->add_option("-i,--input,inputmapdir", inputMapDirectory, "Input map directory")
+	sub_convert->add_option("-i,--input,inputmapdir", app->inputPath, "Input map directory")
 		->required()
 		->check(CLI::ExistingDirectory);
-	static std::string outputMapDirectory;
-	sub_convert->add_option("-o,--output,outputmapdir", outputMapDirectory, "Output map directory")
+	sub_convert->add_option("-o,--output,outputmapdir", app->outputPath, "Output map directory")
 		->required()
 		->check(CLI::ExistingDirectory);
-	sub_convert->add_option("--map-seed", map_mapSeed, "Specify the script-generated map seed");
-	sub_convert->callback([&]() {
-		if (!convertMap(mapType, mapMaxPlayers, inputMapDirectory, outputMapDirectory, outputFormat, map_mapSeed, verbose))
+	sub_convert->add_option("--map-seed", app->mapSeed, "Specify the script-generated map seed");
+	sub_convert->callback([weakAppInstance]() {
+		auto app = weakAppInstance.lock();
+		if (!app)
 		{
-			retVal = 1;
+			std::cerr << "ERROR: Invalid instance" << std::endl;
+			return;
+		}
+		if (!convertMap(app->mapType, app->mapMaxPlayers, app->inputPath, app->outputPath, app->outputMapFormat, app->mapSeed, app->verbose))
+		{
+			app->retVal = 1;
 		}
 	});
 
 	// [GENERATING MAP PREVIEW PNG]
 	CLI::App* sub_preview = sub_map->add_subcommand("genpreview", "Generate a map preview PNG");
 	sub_preview->fallthrough();
-	static WzMap::MapType preview_mapType = WzMap::MapType::SKIRMISH;
-	sub_preview->add_option("-t,--maptype", preview_mapType, "Map type")
+	sub_preview->add_option("-t,--maptype", app->mapType, "Map type")
 		->transform(CLI::CheckedTransformer(maptype_map, CLI::ignore_case))
 		->default_val(WzMap::MapType::SKIRMISH);
-	static uint32_t preview_mapMaxPlayers = 0;
-	sub_preview->add_option("-p,--maxplayers", preview_mapMaxPlayers, "Map max players")
+	sub_preview->add_option("-p,--maxplayers", app->mapMaxPlayers, "Map max players")
 		->required()
 		->check(CLI::Range(1, 10));
-	static std::string preview_inputMapDirectory;
-	sub_preview->add_option("-i,--input,inputmapdir", preview_inputMapDirectory, "Input map directory")
+	sub_preview->add_option("-i,--input,inputmapdir", app->inputPath, "Input map directory")
 		->required()
 		->check(CLI::ExistingDirectory);
-	static std::string preview_outputPNGFilename;
-	sub_preview->add_option("-o,--output,output", preview_outputPNGFilename, "Output PNG filename (+ path)")
+	sub_preview->add_option("-o,--output,output", app->outputPath, "Output PNG filename (+ path)")
 		->required()
 		->check(FileExtensionValidator(".png"));
-	static MapToolsPreviewColorProvider preview_PlayerColorProvider = MapToolsPreviewColorProvider::Simple;
-	sub_preview->add_option("-c,--playercolors", preview_PlayerColorProvider, "Player colors")
+	sub_preview->add_option("-c,--playercolors", app->preview_PlayerColorProvider, "Player colors")
 		->transform(CLI::CheckedTransformer(previewcolors_map, CLI::ignore_case).description("value in {\n\t\tsimple -> use one color for scavs, one color for players,\n\t\twz -> use WZ colors for players (distinct)\n\t}"))
 		->default_val("simple");
-	static WzMap::MapPreviewColor preview_scavsColor = ScavsColorDefault;
-	sub_preview->add_option("--scavcolor", preview_scavsColor, "Specify the scavengers hex color")
+	sub_preview->add_option("--scavcolor", app->preview_scavsColor, "Specify the scavengers hex color")
 		->check(AsHexColorValue());
-	static WzMap::MapPreviewColorScheme::DrawOptions preview_drawOptions;
-	sub_preview->add_option("--layers", preview_drawOptions, "Specify layers to draw\n\t\teither \"all\" or a comma-separated list of any of:\n\t\t\"terrain\",\"structures\",\"oil\"")
+	sub_preview->add_option("--layers", app->preview_drawOptions, "Specify layers to draw\n\t\teither \"all\" or a comma-separated list of any of:\n\t\t\"terrain\",\"structures\",\"oil\"")
 		->default_val("all");
-	sub_preview->add_option("--map-seed", map_mapSeed, "Specify the script-generated map seed");
-	sub_preview->callback([&]() {
-		if (!generateMapPreviewPNG_FromMapDirectory(preview_mapType, preview_mapMaxPlayers, preview_inputMapDirectory, preview_outputPNGFilename, preview_PlayerColorProvider, preview_scavsColor, preview_drawOptions, map_mapSeed, verbose))
+	sub_preview->add_option("--map-seed", app->mapSeed, "Specify the script-generated map seed");
+	sub_preview->callback([weakAppInstance]() {
+		auto app = weakAppInstance.lock();
+		if (!app)
 		{
-			retVal = 1;
+			std::cerr << "ERROR: Invalid instance" << std::endl;
+			return;
+		}
+		if (!generateMapPreviewPNG_FromMapDirectory(app->mapType, app->mapMaxPlayers, app->inputPath, app->outputPath, app->preview_PlayerColorProvider, app->preview_scavsColor, app->preview_drawOptions, app->mapSeed, app->verbose))
+		{
+			app->retVal = 1;
 		}
 	});
 }
 
 int main(int argc, char **argv)
 {
-	int retVal = 0;
-	CLI::App app{"WZ2100 Map Tools"};
-
-#if defined(MAPTOOLS_CLI_VERSION_MAJOR) && defined(MAPTOOLS_CLI_VERSION_MINOR) && defined(MAPTOOLS_CLI_VERSION_REV)
-	app.set_version_flag("--version", []() -> std::string {
-		return generateMapToolsVersionInfo();
-	});
-#else
-	#error Missing maptools version defines
-#endif
-
-	// Initialize rand()
-	srand((unsigned int)time(NULL));
-	(void)rand();
-
-	std::stringstream footerInfo;
-	footerInfo << "License: GPL-2.0-or-later" << std::endl;
-	footerInfo << "Source: https://github.com/Warzone2100/maptools-cli" << std::endl;
-	app.footer(footerInfo.str());
-
-	bool verbose = false;
-	app.add_flag("-v,--verbose", verbose, "Verbose output");
-
-	addSubCommand_Package(app, retVal, verbose);
-	addSubCommand_Map(app, retVal, verbose);
-
-	CLI11_PARSE(app, argc, argv);
-	return retVal;
+	std::shared_ptr<WzMapToolsAppInstance> app = WzMapToolsAppInstance::makeWzMapToolsAppInstance();
+	CLI11_PARSE((*app), argc, argv);
+	return app->getRetVal();
 }
