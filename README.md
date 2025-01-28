@@ -54,6 +54,7 @@ Convert a map from one format to another
 | `--preserve-mods` | Copy other files from the original map package (i.e. the extra files / modifications in a map-mod) | | |
 | `--output-uncompressed` | Output uncompressed to a folder (not in a .wz file) | | |
 | `--set-name` | Set / override the map name when converting | | |
+| `--map-seed` | Specify the script-generated map seed | uint32_t | DEFAULTS to `rand()` |
 
 > Note: When converting a script-generated map:
 > - If the output format is `jsonv2` (or later) the map script will be preserved
@@ -76,6 +77,8 @@ Generate a map preview PNG
 | `-o`,`--output` | Output PNG filename (+ path) | TEXT:PATH | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
 | `-c`,`--playercolors` | Player colors | ENUM:value in {`simple`, `wz`} | DEFAULTS to `simple` |
 | `--scavcolor` | Specify the scavengers hex color | RGB hex color code | DEFAULTS to `#800000` (maroon) |
+| `--layers` | Specify layers to draw | Either `all` or a comma-separated list of any of: {`terrain`, `structures`, `oil`} | DEFAULTS to `all` |
+| `--map-seed` | Specify the script-generated map seed | uint32_t | DEFAULTS to `rand()` |
 
 ## `maptools package info`
 
@@ -90,6 +93,7 @@ Extract info / stats from a map package to JSON
 | `-h`,`--help` | Print help message and exit | | |
 | `-i`,`--input` | Input map package (.wz package, or extracted package folder) | TEXT:PATH | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
 | `-o`,`--output` | Output filename (+ path) | TEXT:PATH | |
+| `--map-seed` | Specify the script-generated map seed | uint32_t | DEFAULTS to `rand()` |
 
 > If `--output` is not specified, the JSON result is output to stdout
 
@@ -116,6 +120,7 @@ Both `inputmapdir` and `outputmapdir` must exist.
 | `-f`,`--format` | [Output map format](#output-map-formats) | ENUM:value in { `bjo`, `json`, `jsonv2`, `latest`} | REQUIRED |
 | `-i`,`--input` | Input map directory | TEXT:DIR | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
 | `-o`,`--output` | Output map directory | TEXT:DIR | REQUIRED <sup>(may also be specified as positional parameter)</sup> |
+| `--map-seed` | Specify the script-generated map seed | uint32_t | DEFAULTS to `rand()` |
 
 ## `maptools map genpreview`
 
@@ -133,6 +138,7 @@ Both `inputmapdir` and the parent directory for the output filename (`output`) m
 | `-c`,`--playercolors` | Player colors | ENUM:value in {`simple`, `wz`} | DEFAULTS to `simple` |
 | `--scavcolor` | Specify the scavengers hex color | RGB hex color code | DEFAULTS to `#800000` (maroon) |
 | `--layers` | Specify layers to draw | Either `all` or a comma-separated list of any of: {`terrain`, `structures`, `oil`} | DEFAULTS to `all` |
+| `--map-seed` | Specify the script-generated map seed | uint32_t | DEFAULTS to `rand()` |
 
 # Output Level Info Formats
 | [format] | Description | flaME | WZ < 3.4 | WZ 3.4+ | WZ 4.1+ | WZ 4.3+ |
