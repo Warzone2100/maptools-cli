@@ -1166,6 +1166,10 @@ int main(int argc, char **argv)
 	#error Missing maptools version defines
 #endif
 
+	// Initialize rand()
+	srand((unsigned int)time(NULL));
+	(void)rand();
+
 	std::stringstream footerInfo;
 	footerInfo << "License: GPL-2.0-or-later" << std::endl;
 	footerInfo << "Source: https://github.com/Warzone2100/maptools-cli" << std::endl;
