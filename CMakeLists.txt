@@ -49,7 +49,7 @@ if(NOT TARGET wzmaplib)
 	FetchContent_Declare(
 		warzone2100_repo
 		GIT_REPOSITORY https://github.com/Warzone2100/warzone2100.git
-		GIT_TAG        6847a6500248bffbbaaa786f1a9b122d22307a15
+		GIT_TAG        9108f81e5f2d2e7ae520e117bf57669309693dfe
 		GIT_PROGRESS   TRUE
 		USES_TERMINAL_DOWNLOAD	TRUE
 		SOURCE_SUBDIR  "lib/wzmaplib"
