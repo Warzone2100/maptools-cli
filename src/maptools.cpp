@@ -416,26 +416,22 @@ private:
 	static constexpr size_t maxClanColours = 16;
 	WzMap::MapPreviewColor clanColours[maxClanColours] =
 	{
-		// NOTE: These do not exactly match the default *order* in WZ (which is randomized when starting a new skirmish game anyway),
-		// but they do match the colors used
-		// [r,g,b,a]
-		{0, 255, 0, 255},		// green  Player 0
-		{255, 192, 40, 255},          // orange Player 1
-//		{255, 255, 255, 255},	// grey   Player 2
-		{55, 55, 55, 255},			// black  Player 3	// NOTE: To match WZ, this is actually set to a dark grey color in map previews to be more visible
-		{255, 0, 0, 255},		// red    Player 4
-		{20, 20, 255, 255},		// blue   Player 5
-		{255, 0, 192, 255},           // pink   Player 6
-		{0, 255, 255, 255},		// cyan   Player 7
-		{255, 255, 0, 255},           // yellow Player 8
-		{144, 0, 255, 255},           // purple Player 9
-		{255, 255, 255, 255},	// grey   Player 2
-		{200, 255, 255, 255},         // white  Player A (Should be brighter than grey, but grey is already maximum.)
-		{128, 128, 255, 255},         // bright blue Player B
-		{128, 255, 128, 255},         // neon green  Player C
-		{128, 0, 0, 255},             // infrared    Player D
-		{64, 0, 128, 255},            // ultraviolet Player E
-		{128, 128, 0, 255},           // brown       Player F
+		{0x10, 0x70, 0x10, 0xff},	// team1 - green
+		{0xff, 0xb0, 0x35, 0xff},	// team2 - orange
+		{0x90, 0x90, 0x90, 0xff},	// team3 - gray
+		{0x20, 0x20, 0x20, 0xff},	// team4 - black
+		{0x9b, 0x0f, 0x0f, 0xff},	// team5 - red
+		{0x27, 0x31, 0xb9, 0xff},	// team6 - blue
+		{0xd0, 0x10, 0xb0, 0xff},	// team7 - pink
+		{0x20, 0xd0, 0xd0, 0xff},	// team8 - cyan
+		{0xf0, 0xe8, 0x10, 0xff},	// team9 - yellow
+		{0x70, 0x00, 0x74, 0xff},	// team10 - purple
+		{0xE0, 0xE0, 0xE0, 0xff},	// team11 - white
+		{0x20, 0x20, 0xFF, 0xff},	// team12 - bright blue
+		{0x00, 0xA0, 0x00, 0xff},	// team13 - neon green
+		{0x40, 0x00, 0x00, 0xff},	// team14 - infrared
+		{0x10, 0x00, 0x40, 0xff},	// team15 - ultraviolet
+		{0x40, 0x60, 0x00, 0xff}	// team16 - brown
 	};
 };
 
@@ -448,8 +444,8 @@ enum class MapToolsPreviewColorProvider
 static bool generateMapPreviewPNG_FromMapObject(WzMap::Map& map, const std::string& outputPNGPath, MapToolsPreviewColorProvider playerColorProvider, WzMap::MapPreviewColor scavsColor, const WzMap::LevelDetails &levelDetails)
 {
 	WzMap::MapPreviewColorScheme previewColorScheme;
-	previewColorScheme.hqColor = {255, 0, 255, 255};
-	previewColorScheme.oilResourceColor = {255, 255, 0, 255};
+	previewColorScheme.hqColor = {254, 0, 254, 255};
+	previewColorScheme.oilResourceColor = {254, 254, 0, 255};
 	previewColorScheme.oilBarrelColor = {128, 192, 0, 255};
 	switch (playerColorProvider)
 	{
