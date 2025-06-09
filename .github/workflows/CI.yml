@@ -72,7 +72,7 @@ jobs:
 
     - name: 'Generate artifact attestation'
       if: success() && (github.event_name == 'push')
-      uses: actions/attest-build-provenance@v1
+      uses: actions/attest-build-provenance@v2
       continue-on-error: true
       with:
         subject-path: '${{github.workspace}}/build/maptools-${{ matrix.artifact-suffix }}.zip'
