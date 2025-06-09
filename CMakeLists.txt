@@ -9,7 +9,7 @@ else()
 	set(_cmake_min_ver_supported 3.11)
 endif()
 
-cmake_minimum_required(VERSION ${_cmake_min_ver_supported}...3.24)
+cmake_minimum_required(VERSION ${_cmake_min_ver_supported}...3.31)
 
 set(_OLD_CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}")
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -49,8 +49,9 @@ if(NOT TARGET wzmaplib)
 	FetchContent_Declare(
 		warzone2100_repo
 		GIT_REPOSITORY https://github.com/Warzone2100/warzone2100.git
-		GIT_TAG        9108f81e5f2d2e7ae520e117bf57669309693dfe
+		GIT_TAG        790d7e2925a8d7624aced70f1afa4860a0bb41e5
 		GIT_PROGRESS   TRUE
+		GIT_SUBMODULES ""
 		USES_TERMINAL_DOWNLOAD	TRUE
 		SOURCE_SUBDIR  "lib/wzmaplib"
 		EXCLUDE_FROM_ALL
