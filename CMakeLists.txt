@@ -88,7 +88,7 @@ add_executable(maptools
 				src/maptools.cpp src/pngsave.cpp src/pngsave.h src/maptools_version.cpp src/maptools_version.h)
 set_target_properties(maptools
 	PROPERTIES
-		CXX_STANDARD 14
+		CXX_STANDARD 17
 		CXX_STANDARD_REQUIRED YES
 		CXX_EXTENSIONS NO
 )
