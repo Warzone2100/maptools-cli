@@ -39,7 +39,7 @@ jobs:
       attestations: write
 
     env:
-      MACOSX_DEPLOYMENT_TARGET: '10.9' # only matters on macOS
+      MACOSX_DEPLOYMENT_TARGET: '10.15' # only matters on macOS
       VCPKG_DEFAULT_TRIPLET: '${{ matrix.vcpkg-triplet }}'
 
     steps:
